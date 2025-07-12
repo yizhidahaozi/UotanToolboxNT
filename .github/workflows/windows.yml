@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: Build Windows
 
 on:
@@ -54,8 +51,16 @@ jobs:
         xcopy ./UotanToolboxNT.Binary/Windows\* ./publish-arm64 /e
         7z a -tzip UotanToolbox_Windows_arm64_${{ inputs.VERSION }}.zip -mx=9 -m0=lzma -md=64m -mfb=64 ./publish-arm64
 
-    - name: Upload
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Windows-Package
         path: ./UotanToolbox_Windows*
+
+    - name: Upload to GitHub Releases
+      uses: softprops/action-gh-release@v1
+      if: github.event_name == 'workflow_dispatch'
+      with:
+        files: ./UotanToolbox_Windows*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
