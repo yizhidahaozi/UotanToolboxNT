@@ -20,6 +20,9 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 必须获取完整的Git历史才能创建标签
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -57,10 +60,22 @@ jobs:
         name: Windows-Package
         path: ./UotanToolbox_Windows*
 
+    - name: Create Git tag
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git tag v${{ inputs.VERSION }}
+        git push origin v${{ inputs.VERSION }}
+
     - name: Upload to GitHub Releases
       uses: softprops/action-gh-release@v1
       if: github.event_name == 'workflow_dispatch'
       with:
         files: ./UotanToolbox_Windows*
+        tag_name: v${{ inputs.VERSION }}
+        name: Uotan Toolbox v${{ inputs.VERSION }}
+        body: |
+          Uotan Toolbox Windows 版本 ${{ inputs.VERSION }}
+          包含 x64 和 arm64 架构
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
