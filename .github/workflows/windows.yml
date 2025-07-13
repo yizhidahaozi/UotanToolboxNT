@@ -47,7 +47,6 @@ jobs:
       run: |
         xcopy ./UotanToolboxNT.Binary/Windows\* ./publish-x64 /e
         7z a -tzip UotanToolbox_Windows_x64_${{ inputs.VERSION }}.zip -mx=9 -m0=lzma -md=64m -mfb=64 ./publish-x64
-        
 
     - name: Make zip-arm64
       run: |
@@ -61,11 +60,51 @@ jobs:
         path: ./UotanToolbox_Windows*
 
     - name: Create Git tag
+      id: create_tag
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git tag v${{ inputs.VERSION }}
-        git push origin v${{ inputs.VERSION }}
+        
+        # 检查标签是否已存在
+        if git rev-parse v${{ inputs.VERSION }} >/dev/null 2>&1; then
+          echo "标签 v${{ inputs.VERSION }} 已存在"
+          echo "tag_exists=true" >> $env:GITHUB_OUTPUT
+        else
+          git tag v${{ inputs.VERSION }}
+          echo "tag_exists=false" >> $env:GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Push Git tag
+      if: steps.create_tag.outputs.tag_exists == 'false'
+      run: |
+        # 推送标签到远程仓库，并捕获可能的错误
+        if ! git push origin v${{ inputs.VERSION }}; then
+          echo "推送标签失败，可能已被其他进程推送"
+          # 尝试获取远程标签的SHA
+          REMOTE_SHA=$(git ls-remote origin refs/tags/v${{ inputs.VERSION }} | cut -f1)
+          LOCAL_SHA=$(git rev-parse v${{ inputs.VERSION }})
+          
+          if [ "$REMOTE_SHA" = "$LOCAL_SHA" ]; then
+            echo "远程标签与本地标签相同，继续发布"
+          else
+            echo "远程标签与本地标签不同，中止发布"
+            exit 1
+          fi
+        fi
+      shell: bash
+
+    - name: Verify tag exists on GitHub
+      run: |
+        # 等待一小段时间，确保GitHub完全同步标签
+        sleep 10
+        
+        # 验证标签是否存在
+        if ! git ls-remote --tags origin v${{ inputs.VERSION }} | grep -q v${{ inputs.VERSION }}; then
+          echo "标签 v${{ inputs.VERSION }} 未在GitHub上找到"
+          exit 1
+        fi
+      shell: bash
 
     - name: Upload to GitHub Releases
       uses: softprops/action-gh-release@v1
