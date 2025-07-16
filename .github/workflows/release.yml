@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest  # 使用 Windows 环境
     
     steps:
       - name: 检出代码
@@ -25,10 +25,10 @@ jobs:
           dotnet-version: '8.0.x'
           
       - name: 验证 GitHub 标签是否同步
-        shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+        shell: bash  # 使用 bash shell (已预装在 GitHub Actions Windows 环境中)
         env:
-          DOTNET_ROOT: C:\Program Files\dotnet
           TAG_NAME: ${{ github.event.inputs.tag_name || github.ref_name }}
+          MSYS_NO_PATHCONV: 1  # 防止 Windows 路径转换问题
         run: |
           # 重试验证标签是否存在
           MAX_ATTEMPTS=5
@@ -53,6 +53,6 @@ jobs:
           
       - name: 构建和发布
         run: |
-          # 你的构建和发布命令
+          # 示例：构建和发布 .NET 应用
           dotnet build --configuration Release
           dotnet publish -c Release -o publish
