@@ -4,10 +4,16 @@ on:
   push:
     tags:
       - 'v*'  # 触发条件：当推送标签以 v 开头时
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      tag_name:
+        description: '要验证的标签名称'
+        required: true
+        default: 'v3.3.5'
 
 jobs:
   build:
-    runs-on: windows-latest  # 根据你的 shell 配置选择合适的运行环境
+    runs-on: windows-latest
     
     steps:
       - name: 检出代码
@@ -22,21 +28,22 @@ jobs:
         shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
         env:
           DOTNET_ROOT: C:\Program Files\dotnet
+          TAG_NAME: ${{ github.event.inputs.tag_name || github.ref_name }}
         run: |
           # 重试验证标签是否存在
           MAX_ATTEMPTS=5
           DELAY=10
 
           for ((attempt=1; attempt<=$MAX_ATTEMPTS; attempt++)); do
-            echo "尝试验证标签 (尝试 $attempt/$MAX_ATTEMPTS)..."
+            echo "尝试验证标签 $TAG_NAME (尝试 $attempt/$MAX_ATTEMPTS)..."
             
-            if git ls-remote --tags origin v3.3.5 | grep -q v3.3.5; then
-              echo "标签 v3.3.5 已找到"
+            if git ls-remote --tags origin "$TAG_NAME" | grep -q "$TAG_NAME"; then
+              echo "标签 $TAG_NAME 已找到"
               break
             fi
             
             if [ $attempt -eq $MAX_ATTEMPTS ]; then
-              echo "标签 v3.3.5 未在GitHub上找到，达到最大尝试次数"
+              echo "标签 $TAG_NAME 未在GitHub上找到，达到最大尝试次数"
               exit 1
             fi
             
