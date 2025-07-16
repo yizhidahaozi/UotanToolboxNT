@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 触发条件：当推送标签以 v 开头时
+
+jobs:
+  build:
+    runs-on: windows-latest  # 根据你的 shell 配置选择合适的运行环境
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        
+      - name: 设置 dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+          
+      - name: 验证 GitHub 标签是否同步
+        shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+        env:
+          DOTNET_ROOT: C:\Program Files\dotnet
+        run: |
+          # 重试验证标签是否存在
+          MAX_ATTEMPTS=5
+          DELAY=10
+
+          for ((attempt=1; attempt<=$MAX_ATTEMPTS; attempt++)); do
+            echo "尝试验证标签 (尝试 $attempt/$MAX_ATTEMPTS)..."
+            
+            if git ls-remote --tags origin v3.3.5 | grep -q v3.3.5; then
+              echo "标签 v3.3.5 已找到"
+              break
+            fi
+            
+            if [ $attempt -eq $MAX_ATTEMPTS ]; then
+              echo "标签 v3.3.5 未在GitHub上找到，达到最大尝试次数"
+              exit 1
+            fi
+            
+            echo "标签未找到，等待 $DELAY 秒后重试..."
+            sleep $DELAY
+          done
+          
+      - name: 构建和发布
+        run: |
+          # 你的构建和发布命令
+          dotnet build --configuration Release
+          dotnet publish -c Release -o publish
