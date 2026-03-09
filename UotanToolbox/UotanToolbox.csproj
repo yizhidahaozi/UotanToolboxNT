@@ -81,6 +81,9 @@
 			<AutoGen>True</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
+		<Compile Update="Features\Advancedflash\AdvancedflashView.axaml.cs">
+		  <DependentUpon>AdvancedflashView.axaml</DependentUpon>
+		</Compile>
 		<Compile Update="Features\Appmgr\AppmgrView.axaml.cs">
 			<DependentUpon>AppmgrView.axaml</DependentUpon>
 		</Compile>

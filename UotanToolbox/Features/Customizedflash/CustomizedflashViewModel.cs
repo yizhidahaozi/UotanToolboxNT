@@ -10,7 +10,7 @@ public partial class CustomizedflashViewModel : MainPageBase
         return FeaturesHelper.GetTranslation(key);
     }
 
-    public CustomizedflashViewModel() : base(GetTranslation("Sidebar_Customizedflash"), MaterialIconKind.PencilPlusOutline, -500)
+    public CustomizedflashViewModel() : base(GetTranslation("Sidebar_Customizedflash"), MaterialIconKind.PencilPlusOutline, -550)
     {
     }
 }

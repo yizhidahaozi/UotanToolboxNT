@@ -1685,7 +1685,7 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
     <value>Select vbmeta</value>
   </data>
   <data name="Wiredflash_DisVbmeta" xml:space="preserve">
-    <value>Disable vbmeta</value>
+    <value>Dis vbmeta</value>
   </data>
   <data name="Settings_BootPatch" xml:space="preserve">
     <value>Boot patch config flie</value>
@@ -1698,5 +1698,50 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   </data>
   <data name="Basicflash_NotSupportM" xml:space="preserve">
     <value>Do not support Magisk patched boot.img!</value>
+  </data>
+  <data name="Advancedflash_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Advancedflash_FileOrFolder" xml:space="preserve">
+    <value>File/Folder:</value>
+  </data>
+  <data name="Advancedflash_SelectFile" xml:space="preserve">
+    <value>can select paylod.bin super.img .txt .bat .sh .xml files,image folder, or zip link.</value>
+  </data>
+  <data name="Advancedflash_Selected" xml:space="preserve">
+    <value>Total:</value>
+  </data>
+  <data name="Advancedflash_Basic" xml:space="preserve">
+    <value>Basic operations</value>
+  </data>
+  <data name="Advancedflash_FlashSelected" xml:space="preserve">
+    <value>Flash selected</value>
+  </data>
+  <data name="Advancedflash_EraseSelected" xml:space="preserve">
+    <value>Erase selected</value>
+  </data>
+  <data name="Advancedflash_SetOther" xml:space="preserve">
+    <value>Set other</value>
+  </data>
+  <data name="Advancedflash_ExtractSelected" xml:space="preserve">
+    <value>Extract selected</value>
+  </data>
+  <data name="Advancedflash_ToWiredPkg" xml:space="preserve">
+    <value>To wiredflash Pkg</value>
+  </data>
+  <data name="Advancedflash_ExportScript" xml:space="preserve">
+    <value>Export script</value>
+  </data>
+  <data name="Advancedflash_ExtractImg" xml:space="preserve">
+    <value>Extract image</value>
+  </data>
+  <data name="Advancedflash_ChooseFile" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Advancedflash_ChooseFolder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Advancedflash_Name" xml:space="preserve">
+    <value>Advanced flash</value>
   </data>
 </root>

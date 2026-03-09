@@ -562,7 +562,7 @@
     <value>小米USB3.0补丁</value>
   </data>
   <data name="Common_ChooseFolder" xml:space="preserve">
-    <value>选择文件夹</value>
+    <value>选择目录</value>
   </data>
   <data name="Scrcpy_Bitrate" xml:space="preserve">
     <value>比特率</value>
@@ -1175,7 +1175,7 @@
 ADB下填写序号，一次一个！</value>
   </data>
   <data name="Modifypartition_PartName" xml:space="preserve">
-    <value>分区名称</value>
+    <value>分区名称:</value>
   </data>
   <data name="Common_EnterSideload" xml:space="preserve">
     <value>请进入Sideload模式！</value>
@@ -1698,5 +1698,50 @@ ADB下填写序号，一次一个！</value>
   </data>
   <data name="Basicflash_NotSupportM" xml:space="preserve">
     <value>不支持 Magisk 修补过的 Boot 镜像！</value>
+  </data>
+  <data name="Advancedflash_SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Advancedflash_FileOrFolder" xml:space="preserve">
+    <value>选择文件/目录:</value>
+  </data>
+  <data name="Advancedflash_SelectFile" xml:space="preserve">
+    <value>可选择paylod.bin super.img .txt .bat .sh .xml文件或镜像目录或卡刷包链接</value>
+  </data>
+  <data name="Advancedflash_Selected" xml:space="preserve">
+    <value>已选择:</value>
+  </data>
+  <data name="Advancedflash_Basic" xml:space="preserve">
+    <value>基础操作</value>
+  </data>
+  <data name="Advancedflash_FlashSelected" xml:space="preserve">
+    <value>刷入选中分区</value>
+  </data>
+  <data name="Advancedflash_EraseSelected" xml:space="preserve">
+    <value>擦除选中分区</value>
+  </data>
+  <data name="Advancedflash_SetOther" xml:space="preserve">
+    <value>切换槽位</value>
+  </data>
+  <data name="Advancedflash_ExtractSelected" xml:space="preserve">
+    <value>提取选中镜像</value>
+  </data>
+  <data name="Advancedflash_ToWiredPkg" xml:space="preserve">
+    <value>一键生成线刷包</value>
+  </data>
+  <data name="Advancedflash_ExportScript" xml:space="preserve">
+    <value>导出脚本</value>
+  </data>
+  <data name="Advancedflash_ExtractImg" xml:space="preserve">
+    <value>提取镜像</value>
+  </data>
+  <data name="Advancedflash_ChooseFile" xml:space="preserve">
+    <value>选择文件</value>
+  </data>
+  <data name="Advancedflash_ChooseFolder" xml:space="preserve">
+    <value>选择目录</value>
+  </data>
+  <data name="Advancedflash_Name" xml:space="preserve">
+    <value>高级线刷</value>
   </data>
 </root>

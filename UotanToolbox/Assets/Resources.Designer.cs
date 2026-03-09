@@ -124,6 +124,141 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Basic operations 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Basic {
+            get {
+                return ResourceManager.GetString("Advancedflash_Basic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 File 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ChooseFile {
+            get {
+                return ResourceManager.GetString("Advancedflash_ChooseFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Folder 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ChooseFolder {
+            get {
+                return ResourceManager.GetString("Advancedflash_ChooseFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Erase selected 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_EraseSelected {
+            get {
+                return ResourceManager.GetString("Advancedflash_EraseSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Export script 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ExportScript {
+            get {
+                return ResourceManager.GetString("Advancedflash_ExportScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Extract image 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ExtractImg {
+            get {
+                return ResourceManager.GetString("Advancedflash_ExtractImg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Extract selected 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ExtractSelected {
+            get {
+                return ResourceManager.GetString("Advancedflash_ExtractSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 File/Folder: 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_FileOrFolder {
+            get {
+                return ResourceManager.GetString("Advancedflash_FileOrFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Flash selected 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_FlashSelected {
+            get {
+                return ResourceManager.GetString("Advancedflash_FlashSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Advanced flash 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Name {
+            get {
+                return ResourceManager.GetString("Advancedflash_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select all 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_SelectAll {
+            get {
+                return ResourceManager.GetString("Advancedflash_SelectAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Total: 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Selected {
+            get {
+                return ResourceManager.GetString("Advancedflash_Selected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 can select paylod.bin super.img .txt .bat .sh .xml files,image folder, or zip link. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_SelectFile {
+            get {
+                return ResourceManager.GetString("Advancedflash_SelectFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Set other 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_SetOther {
+            get {
+                return ResourceManager.GetString("Advancedflash_SetOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 To wiredflash Pkg 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ToWiredPkg {
+            get {
+                return ResourceManager.GetString("Advancedflash_ToWiredPkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Activate App 的本地化字符串。
         /// </summary>
         public static string Appmgr_ActivateSwitch {
@@ -1520,6 +1655,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 This function only supports Windows, macOS and Linux. 的本地化字符串。
+        /// </summary>
+        public static string Common_PlatformNotSupported {
+            get {
+                return ResourceManager.GetString("Common_PlatformNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Success 的本地化字符串。
         /// </summary>
         public static string Common_Succ {
@@ -2132,6 +2276,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 ADB device scan completed 的本地化字符串。
+        /// </summary>
+        public static string Home_ADBScanCompleted {
+            get {
+                return ResourceManager.GetString("Home_ADBScanCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Android 的本地化字符串。
         /// </summary>
         public static string Home_Android {
@@ -2287,6 +2440,24 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Device {0} connected 的本地化字符串。
+        /// </summary>
+        public static string Home_DeviceConnected {
+            get {
+                return ResourceManager.GetString("Home_DeviceConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device {0} disconnected 的本地化字符串。
+        /// </summary>
+        public static string Home_DeviceDisconnected {
+            get {
+                return ResourceManager.GetString("Home_DeviceDisconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Device Info 的本地化字符串。
         /// </summary>
         public static string Home_DeviceInfo {
@@ -2301,6 +2472,15 @@ namespace UotanToolbox.Assets {
         public static string Home_DeviceModel {
             get {
                 return ResourceManager.GetString("Home_DeviceModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device {0} updated 的本地化字符串。
+        /// </summary>
+        public static string Home_DeviceUpdated {
+            get {
+                return ResourceManager.GetString("Home_DeviceUpdated", resourceCulture);
             }
         }
         
@@ -2350,6 +2530,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Fastboot device scan completed 的本地化字符串。
+        /// </summary>
+        public static string Home_FastbootScanCompleted {
+            get {
+                return ResourceManager.GetString("Home_FastbootScanCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Fetching ... 的本地化字符串。
         /// </summary>
         public static string Home_Fetching {
@@ -2364,6 +2553,15 @@ namespace UotanToolbox.Assets {
         public static string Home_FlashType {
             get {
                 return ResourceManager.GetString("Home_FlashType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 HDC device scan completed 的本地化字符串。
+        /// </summary>
+        public static string Home_HDCScanCompleted {
+            get {
+                return ResourceManager.GetString("Home_HDCScanCompleted", resourceCulture);
             }
         }
         
@@ -2526,6 +2724,15 @@ namespace UotanToolbox.Assets {
         public static string Home_Saved {
             get {
                 return ResourceManager.GetString("Home_Saved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Device scan completed 的本地化字符串。
+        /// </summary>
+        public static string Home_ScanCompleted {
+            get {
+                return ResourceManager.GetString("Home_ScanCompleted", resourceCulture);
             }
         }
         
@@ -3711,6 +3918,105 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Boot clean failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_BootCleanFailed {
+            get {
+                return ResourceManager.GetString("Patch_BootCleanFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 kernelsu.ko not found in patch source. 的本地化字符串。
+        /// </summary>
+        public static string Patch_KernelSUNotFound {
+            get {
+                return ResourceManager.GetString("Patch_KernelSUNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 KernelSU pack failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_KernelSUPackFailed {
+            get {
+                return ResourceManager.GetString("Patch_KernelSUPackFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 KernelSU patch failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_KernelSUPatchFailed {
+            get {
+                return ResourceManager.GetString("Patch_KernelSUPatchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Cannot find a matching kernelsu.ko for kernel version {0} in this APK. 的本地化字符串。
+        /// </summary>
+        public static string Patch_KSUKoNotFound {
+            get {
+                return ResourceManager.GetString("Patch_KSUKoNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Could not find libksud.so for architecture {0} in APK. 的本地化字符串。
+        /// </summary>
+        public static string Patch_KSUKsudNotFound {
+            get {
+                return ResourceManager.GetString("Patch_KSUKsudNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 KernelSU only supports ARM64 architecture. 的本地化字符串。
+        /// </summary>
+        public static string Patch_KSUOnlyArm64 {
+            get {
+                return ResourceManager.GetString("Patch_KSUOnlyArm64", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Magisk component copy failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_MagiskCopyFailed {
+            get {
+                return ResourceManager.GetString("Patch_MagiskCopyFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Magisk DTB patch failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_MagiskDTBPatchFailed {
+            get {
+                return ResourceManager.GetString("Patch_MagiskDTBPatchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Magisk patch failed. 的本地化字符串。
+        /// </summary>
+        public static string Patch_MagiskPatchFailed {
+            get {
+                return ResourceManager.GetString("Patch_MagiskPatchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Magisk ramdisk patch failed:  的本地化字符串。
+        /// </summary>
+        public static string Patch_MagiskRamdiskPatchFailed {
+            get {
+                return ResourceManager.GetString("Patch_MagiskRamdiskPatchFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Bitrate 的本地化字符串。
         /// </summary>
         public static string Scrcpy_Bitrate {
@@ -4433,7 +4739,7 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
-        ///   查找类似 Disable vbmeta 的本地化字符串。
+        ///   查找类似 Dis vbmeta 的本地化字符串。
         /// </summary>
         public static string Wiredflash_DisVbmeta {
             get {

@@ -35,7 +35,7 @@ public partial class ScrcpyViewModel : MainPageBase
         return FeaturesHelper.GetTranslation(key);
     }
 
-    public ScrcpyViewModel() : base("Scrcpy", MaterialIconKind.CellphoneLink, -500)
+    public ScrcpyViewModel() : base("Scrcpy", MaterialIconKind.CellphoneLink, -650)
     {
         _ = this.WhenAnyValue(x => x.ComputerControl)
             .Subscribe(jug =>
