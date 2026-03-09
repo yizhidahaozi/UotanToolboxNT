@@ -1,8 +1,8 @@
-using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.VisualTree;
 using SukiUI.Controls;
+using System;
 
 namespace UotanToolbox.Utilities
 {

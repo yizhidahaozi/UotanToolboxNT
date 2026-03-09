@@ -560,7 +560,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_ScanCompleted(object sender, EventArgs e)
     {
-            // scan completed event is intentionally silent; manual refresh triggers notifications
+        // scan completed event is intentionally silent; manual refresh triggers notifications
     }
 
     public void Dispose()
