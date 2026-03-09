@@ -10,7 +10,7 @@ public class ViewLocator : IDataTemplate
 {
     private readonly Dictionary<object, Control> _controlCache = [];
 
-    public Control Build(object data)
+    public Control? Build(object? data)
     {
         string fullName = data?.GetType().FullName;
         if (fullName is null)
@@ -40,7 +40,7 @@ public class ViewLocator : IDataTemplate
         return res;
     }
 
-    public bool Match(object data)
+    public bool Match(object? data)
     {
         return data is INotifyPropertyChanged;
     }

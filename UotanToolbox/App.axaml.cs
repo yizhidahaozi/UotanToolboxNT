@@ -17,7 +17,7 @@ namespace UotanToolbox;
 
 public partial class App : Application
 {
-    private IServiceProvider _provider;
+    private IServiceProvider _provider = null!; // initialized in Initialize()
 
     public override void Initialize()
     {
@@ -34,18 +34,24 @@ public partial class App : Application
         Assets.Resources.Culture = CurCulture;
 
         // set up global device manager reference
-        Global.DeviceManager = _provider?.GetRequiredService<UotanToolbox.Common.Devices.DeviceManager>();
+        if (_provider is null)
+            throw new InvalidOperationException("Service provider not initialized");
+        Global.DeviceManager = _provider.GetRequiredService<UotanToolbox.Common.Devices.DeviceManager>();
         // perform initial scan in background
-        _ = Global.DeviceManager?.ScanAsync();
+        _ = Global.DeviceManager.ScanAsync();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            IDataTemplate viewLocator = _provider?.GetRequiredService<IDataTemplate>();
-            MainViewModel mainVm = _provider?.GetRequiredService<MainViewModel>();
+            var viewLocator = _provider.GetRequiredService<IDataTemplate>();
+            var mainVm = _provider.GetRequiredService<MainViewModel>();
 
-            desktop.MainWindow = viewLocator?.Build(mainVm) as Window;
-            desktop.MainWindow.Width = 1235;
-            desktop.MainWindow.Height = 840;
+            var window = viewLocator.Build(mainVm) as Window;
+            if (window == null)
+                throw new InvalidOperationException("Failed to build main window");
+            desktop.MainWindow = window;
+            // MainWindow is guaranteed non-null because we just assigned it from 'window'
+            desktop.MainWindow!.Width = 1235;
+            desktop.MainWindow!.Height = 840;
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -53,7 +59,7 @@ public partial class App : Application
 
     private static ServiceProvider ConfigureServices()
     {
-        IDataTemplate viewlocator = Current?.DataTemplates.First(x => x is ViewLocator);
+        IDataTemplate? viewlocator = Current?.DataTemplates.First(x => x is ViewLocator);
         ServiceCollection services = new ServiceCollection();
 
         if (viewlocator is not null)

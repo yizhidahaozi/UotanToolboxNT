@@ -70,8 +70,9 @@ public partial class BasicflashView : UserControl
 
     private async void OpenUnlockFile(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
-        System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        TopLevel topLevel = TopLevel.GetTopLevel(this) ?? throw new InvalidOperationException("Cannot locate top-level window");
+        var storage = topLevel.StorageProvider ?? throw new InvalidOperationException("StorageProvider is unavailable");
+        System.Collections.Generic.IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open File",
             AllowMultiple = false

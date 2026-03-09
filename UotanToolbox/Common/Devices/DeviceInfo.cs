@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace UotanToolbox.Common.Devices
@@ -8,7 +9,7 @@ namespace UotanToolbox.Common.Devices
         public TransportType Transport { get; }
         public IReadOnlyDictionary<string, string> Properties { get; }
 
-        public DeviceInfo(string id, TransportType transport, IReadOnlyDictionary<string, string> properties = null)
+        public DeviceInfo(string id, TransportType transport, IReadOnlyDictionary<string, string>? properties = null)
         {
             Id = id;
             Transport = transport;
@@ -17,7 +18,7 @@ namespace UotanToolbox.Common.Devices
 
         public override string ToString() => Id;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not DeviceInfo other)
                 return false;

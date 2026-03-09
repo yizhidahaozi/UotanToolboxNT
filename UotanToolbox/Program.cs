@@ -15,6 +15,24 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Console.WriteLine("Program started with args: " + string.Join(" ", args));
+        // quick command-line helper for payload testing
+        if (args.Length > 0 && args[0] == "--test-payload")
+        {
+            string url = args.Length > 1 ? args[1] : throw new ArgumentException("URL required");
+            Console.WriteLine("testing payload extraction from " + url);
+            try
+            {
+                UotanToolbox.Common.ROMHelper.PayloadParser.ExtractBootFromRemoteAsync(url).GetAwaiter().GetResult();
+                Console.WriteLine("boot extraction complete");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("error: " + ex);
+            }
+            return;
+        }
+
         _ = BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
     }

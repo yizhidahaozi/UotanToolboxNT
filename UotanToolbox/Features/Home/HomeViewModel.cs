@@ -144,7 +144,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             {
                 await Global.DeviceManager.ScanAsync();
                 // refresh displayed list if there is any change (do not animate busy when automatic)
-                _ = await GetDevicesList();
+                _ = await GetDevicesList(_hasWarnedNoDevice == false); // show warning first time only
             }
             await Task.Delay(1000);
         }
@@ -163,8 +163,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceAdded(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        // if new device appears refresh list, keep selection
-        _ = GetDevicesList();
+        // if new device appears refresh list, keep selection (do not warn)
+        _ = GetDevicesList(false);
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
@@ -175,8 +175,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceRemoved(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        // refresh list; if removed device was selected, pick another or clear
-        _ = GetDevicesList();
+        // refresh list; if removed device was selected, pick another or clear (do not warn)
+        _ = GetDevicesList(false);
         if (Global.thisdevice == e.Device.Id)
         {
             Global.thisdevice = SimpleContent?.FirstOrDefault();
@@ -189,11 +189,17 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             .Queue();
     }
 
-    public async Task<bool> GetDevicesList()
+    private bool _hasWarnedNoDevice = false;
+
+    public async Task<bool> GetDevicesList(bool showWarning = false)
     {
         if (Global.DeviceManager == null)
         {
-            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
+            if (showWarning && !_hasWarnedNoDevice)
+            {
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
+                _hasWarnedNoDevice = true;
+            }
             return false;
         }
         await Global.DeviceManager.ScanAsync();
@@ -210,7 +216,11 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
         else
         {
-            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
+            if (showWarning && !_hasWarnedNoDevice)
+            {
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
+                _hasWarnedNoDevice = true;
+            }
             return false;
         }
     }
@@ -260,7 +270,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         // capture old sets
         var oldSets = _previousDeviceSets;
 
-        if (await GetDevicesList() && Global.thisdevice != null && string.Join("", Global.deviceslist).Contains(Global.thisdevice))
+        if (await GetDevicesList(true) && Global.thisdevice != null && string.Join("", Global.deviceslist).Contains(Global.thisdevice))
         {
             if (!oldSets.Any())
             {

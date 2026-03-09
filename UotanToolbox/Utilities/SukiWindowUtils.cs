@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.VisualTree;
@@ -13,7 +14,12 @@ namespace UotanToolbox.Utilities
         /// </summary>
         public static SukiWindow Get()
         {
-            return (SukiWindow)((IClassicDesktopStyleApplicationLifetime)Application.Current.ApplicationLifetime).MainWindow;
+            var app = Application.Current ?? throw new InvalidOperationException("Application.Current is null");
+            if (app.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime lifetime)
+                throw new InvalidOperationException("Application lifetime is not a classic desktop style lifetime");
+            if (lifetime.MainWindow is not SukiWindow win)
+                throw new InvalidOperationException("MainWindow is not initialized or not a SukiWindow");
+            return win;
         }
 
         /// <summary>
@@ -21,7 +27,10 @@ namespace UotanToolbox.Utilities
         /// </summary>
         public static SukiToast GetSukiHost(this SukiWindow window)
         {
-            return window.FindDescendantOfType<SukiToast>()!;
+            var toast = window.FindDescendantOfType<SukiToast>();
+            if (toast == null)
+                throw new InvalidOperationException("SukiToast not found in window visual tree");
+            return toast;
         }
     }
 }
