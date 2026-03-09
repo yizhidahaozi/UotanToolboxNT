@@ -1744,4 +1744,13 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   <data name="Advancedflash_Name" xml:space="preserve">
     <value>Advanced flash</value>
   </data>
+  <data name="Settings_BackPatch" xml:space="preserve">
+    <value>Backup patch</value>
+  </data>
+  <data name="Settings_UseNative" xml:space="preserve">
+    <value>Use native dependencies</value>
+  </data>
+  <data name="Settings_UseNativeText" xml:space="preserve">
+    <value>Whether to use the native Fastboot and ADB program. Enabling it will use the version developed in C#, while disabling it will use the version provided by Google.</value>
+  </data>
 </root>

@@ -38,9 +38,11 @@ public partial class SettingsViewModel : MainPageBase
     [ObservableProperty] private SukiBackgroundStyle _backgroundStyle;
     [ObservableProperty] private bool _backgroundAnimations;
     [ObservableProperty] private bool _backgroundTransitions;
+    [ObservableProperty] private bool _useNative = true;
     [ObservableProperty] private string _currentVersion = Global.currentVersion;
     [ObservableProperty] private string _binVersion = null;
     [ObservableProperty] private string _csvPath = Global.BootPatchPath;
+    [ObservableProperty] private string _backPath = Global.backup_path;
     [ObservableProperty] private string _mouZei = "@某贼\r\n提供开发思路";
     [ObservableProperty] private string _kCN = "@剧毒的KCN\r\n安装器开发";
     [ObservableProperty] private string _aCA = "@小太阳ACA\r\n依赖支持";

@@ -110,6 +110,32 @@
 								</StackPanel>
 							</DockPanel>
 							<DockPanel>
+								<StackPanel HorizontalAlignment="Left">
+									<TextBlock FontSize="16"
+											   FontWeight="DemiBold"
+											   Text="{x:Static assets:Resources.Settings_BackPatch}" />
+									<StackPanel Orientation="Horizontal" Margin="-5 0 0 0" Spacing="4">
+										<TextBox Width="560" Name="BackPath" Text="{Binding BackPath, Mode=TwoWay}"/>
+										<Button Width="145" Height="35" Content="{x:Static assets:Resources.Common_ChooseFolder}" Click="SetBackupFolder"/>
+									</StackPanel>
+								</StackPanel>
+							</DockPanel>
+							<DockPanel>
+								<ToggleButton VerticalAlignment="Top"
+											  Classes="Switch"
+											  DockPanel.Dock="Right"
+											  IsChecked="{Binding UseNative}" />
+								<StackPanel HorizontalAlignment="Left">
+									<TextBlock FontSize="16"
+											   FontWeight="DemiBold"
+											   Text="{x:Static assets:Resources.Settings_UseNative}" />
+									<TextBlock Margin="0,12,70,0" Width="650"
+											   Foreground="{DynamicResource SukiLowText}"
+											   Text="{x:Static assets:Resources.Settings_UseNativeText}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+							</DockPanel>
+							<DockPanel>
 								<ToggleButton VerticalAlignment="Top"
 											  Classes="Switch"
 											  DockPanel.Dock="Right"

@@ -1744,4 +1744,13 @@ ADB下填写序号，一次一个！</value>
   <data name="Advancedflash_Name" xml:space="preserve">
     <value>高级线刷</value>
   </data>
+  <data name="Settings_BackPatch" xml:space="preserve">
+    <value>备份路径</value>
+  </data>
+  <data name="Settings_UseNative" xml:space="preserve">
+    <value>使用原生依赖程序</value>
+  </data>
+  <data name="Settings_UseNativeText" xml:space="preserve">
+    <value>是否使用原生Fastboot和ADB程序，启用将使用由C#开发的版本，禁用将使用由谷歌提供的版本。</value>
+  </data>
 </root>

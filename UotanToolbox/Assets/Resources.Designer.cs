@@ -4377,6 +4377,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Backup patch 的本地化字符串。
+        /// </summary>
+        public static string Settings_BackPatch {
+            get {
+                return ResourceManager.GetString("Settings_BackPatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Base Theme 的本地化字符串。
         /// </summary>
         public static string Settings_BaseTheme {
@@ -4607,6 +4616,24 @@ namespace UotanToolbox.Assets {
         public static string Settings_UpToDate {
             get {
                 return ResourceManager.GetString("Settings_UpToDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Use native dependencies 的本地化字符串。
+        /// </summary>
+        public static string Settings_UseNative {
+            get {
+                return ResourceManager.GetString("Settings_UseNative", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Whether to use the native Fastboot and ADB program. Enabling it will use the version developed in C#, while disabling it will use the version provided by Google. 的本地化字符串。
+        /// </summary>
+        public static string Settings_UseNativeText {
+            get {
+                return ResourceManager.GetString("Settings_UseNativeText", resourceCulture);
             }
         }
         
