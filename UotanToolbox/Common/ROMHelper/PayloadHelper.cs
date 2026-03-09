@@ -937,9 +937,17 @@ namespace UotanToolbox.Common.ROMHelper
         /// - 直接 payload.bin：下载整个文件
         /// 方法会根据元数据自动处理 A/B 多槽位，所有名称以 "boot" 开头的分区都会输出。
         /// </summary>
-        public static async Task ExtractBootFromRemoteAsync(string url, string? outputDirectory = null)
+        /// <summary>
+        /// 从远端 zip/url 下载并解压 boot 分区镜像。
+        /// 返回提取得到的文件完整路径列表。
+        /// - ZIP 包：仅拉取并解压 payload.bin 条目
+        /// - 直接 payload.bin：下载整个文件
+        /// 方法会根据元数据自动处理 A/B 多槽位，所有名称以 "boot" 开头的分区都会输出。
+        /// </summary>
+        public static async Task<List<string>> ExtractBootFromRemoteAsync(string url, string? outputDirectory = null)
         {
             outputDirectory ??= Directory.GetCurrentDirectory();
+            var extractedFiles = new List<string>();
 
             using HttpClient client = new();
             bool contains = await RemoteUrlContainsPayloadAsync(url);
@@ -984,8 +992,20 @@ namespace UotanToolbox.Common.ROMHelper
                         string src = Path.Combine(Directory.GetCurrentDirectory(), part + ".img");
                         if (File.Exists(src))
                         {
-                            File.Move(src, Path.Combine(outputDirectory, part + ".img"), true);
+                            string dest = Path.Combine(outputDirectory, part + ".img");
+                            File.Move(src, dest, true);
+                            extractedFiles.Add(dest);
                         }
+                    }
+                }
+                else
+                {
+                    // files are left in current directory
+                    foreach (var part in bootParts)
+                    {
+                        string src = Path.Combine(Directory.GetCurrentDirectory(), part + ".img");
+                        if (File.Exists(src))
+                            extractedFiles.Add(src);
                     }
                 }
             }
@@ -993,6 +1013,8 @@ namespace UotanToolbox.Common.ROMHelper
             {
                 try { File.Delete(tempPayload); } catch { }
             }
+
+            return extractedFiles;
         }
 
         private static async Task<bool> RemoteZipHasEntryAsync(HttpClient client, string url, string entryName)
@@ -1165,7 +1187,7 @@ namespace UotanToolbox.Common.ROMHelper
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
-        public static async Task<List<PartitionInfoData>> GetPartitionInfoFromUrlV2Async(string url)
+        public static async Task<List<PartitionInfoData>> GetPartitionInfoFromUrlAsync(string url)
         {
             using var client = new HttpClient();
             var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
@@ -1175,9 +1197,14 @@ namespace UotanToolbox.Common.ROMHelper
             return ComputePartitionInfo(manifest, baseOffset);
         }
 
-        public static async Task ExtractBootFromUrlV2Async(string url, string? outputDir = null)
+        /// <summary>
+        /// 从远端 zip 中解析并仅拉取 payload.bin 中的 boot 分区数据。
+        /// 返回提取的文件路径列表。
+        /// </summary>
+        public static async Task<List<string>> ExtractBootFromUrlAsync(string url, string? outputDir = null)
         {
             outputDir ??= Directory.GetCurrentDirectory();
+            var extracted = new List<string>();
             using var client = new HttpClient();
             var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
             using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
@@ -1193,9 +1220,11 @@ namespace UotanToolbox.Common.ROMHelper
             foreach (var part in bootParts)
             {
                 string outPath = Path.Combine(outputDir, part.PartitionName + ".img");
-                Console.WriteLine($"Extracting {part.PartitionName} to {outPath}...");
                 parser.ExtractPartition(part, outPath, stream, baseOffset, manifest.BlockSize);
+                extracted.Add(outPath);
             }
+
+            return extracted;
         }
 
         private static int FindEOCDOffset(byte[] data)
