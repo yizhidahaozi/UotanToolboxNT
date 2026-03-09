@@ -1,8 +1,10 @@
 ﻿using Avalonia.Controls.Notifications;
 using QRCoder;
 using SukiUI.Dialogs;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UotanToolbox.Common.Devices;
 
 namespace UotanToolbox.Common
 {
@@ -10,6 +12,19 @@ namespace UotanToolbox.Common
     internal class ADBPairHelper
     {
         private static string GetTranslation(string key) => FeaturesHelper.GetTranslation(key);
+
+        private static async Task<string> Adb(string cmd)
+        {
+            if (Global.DeviceManager != null)
+            {
+                var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Transport == TransportType.Adb);
+                if (dev != null)
+                {
+                    return await Global.DeviceManager.ExecuteAsync(dev, cmd);
+                }
+            }
+            return await CallExternalProgram.ADB(cmd);
+        }
         public static byte[] QRCodeInit(string serviceID, string password)
         {
             string QRData = "WIFI:T:ADB;S:" + serviceID + ";P:" + password + ";;";
@@ -27,7 +42,7 @@ namespace UotanToolbox.Common
         {
             while (true)
             {
-                string result = await CallExternalProgram.ADB("mdns services");
+                string result = await Adb("mdns services");
                 if (result.Contains("List of discovered mdns services"))
                 {
                     var lineRegex = "([^\\t]+)\\t*_adb-tls-pairing._tcp.\\t*([^:]+):([0-9]+)";
@@ -35,7 +50,7 @@ namespace UotanToolbox.Common
                     string deviceIP = match.Groups[2].Value;
                     if (match.Success)
                     {
-                        result = await CallExternalProgram.ADB($"pair {match.Groups[2].Value}:{match.Groups[3].Value} {password}");
+                        result = await Adb($"pair {match.Groups[2].Value}:{match.Groups[3].Value} {password}");
                         if (result.Contains("Successfully paired to "))
                         {
                             dialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("WirelessADB_Connect")).Dismiss().ByClickingBackground().TryShow();
@@ -47,7 +62,7 @@ namespace UotanToolbox.Common
         }
         public static async Task<bool> Pair(string input, string password)
         {
-            string result = await CallExternalProgram.ADB($"pair {input} {password}");
+            string result = await Adb($"pair {input} {password}");
             if (result.Contains("Successfully paired to "))
             {
                 return true;

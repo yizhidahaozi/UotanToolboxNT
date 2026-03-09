@@ -30,7 +30,7 @@ public partial class MainView : SukiWindow
         SetSystemDecorationsBasedOnPlatform();
         this.GetObservable(ClientSizeProperty).Subscribe(OnClientSizeChanged);
     }
-    
+
     private void OnClientSizeChanged(Size newSize)
     {
         double deltaWidth = Math.Abs(newSize.Width - _lastSize.Width);
@@ -63,7 +63,7 @@ public partial class MainView : SukiWindow
             this.SystemDecorations = SystemDecorations.Full;
         }
     }
-    
+
     private void SetResize(object sender, RoutedEventArgs e)
     {
         Global.SetResize = this.CanResize;

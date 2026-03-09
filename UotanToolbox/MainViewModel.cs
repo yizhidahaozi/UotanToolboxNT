@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
+using UotanToolbox.Common.Devices;
 using UotanToolbox.Features;
 using UotanToolbox.Features.Settings;
 using UotanToolbox.Services;
@@ -126,21 +127,28 @@ public partial class MainViewModel : ObservableObject
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -155,30 +163,33 @@ public partial class MainViewModel : ObservableObject
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot recovery");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem reboot-recovery");
-                if (output.Contains("unknown command"))
+                switch (device.Transport)
                 {
-                    await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
-                    await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot");
-                }
-                else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-                {
-                    await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -recovery");
-                }
-                else
-                {
-                    await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot recovery");
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                        break;
+                    case TransportType.Fastboot:
+                        string output = await Global.DeviceManager.ExecuteAsync(device, "oem reboot-recovery");
+                        if (output.Contains("unknown command"))
+                        {
+                            await Global.DeviceManager.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
+                            await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        }
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -recovery");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
                 }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -192,22 +203,28 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot bootloader");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot-bootloader");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -bootloader");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot bootloader");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot-bootloader");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -bootloader");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -221,22 +238,28 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot fastboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot-fastboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -fastboot");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot fastboot");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot-fastboot");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -fastboot");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -250,18 +273,25 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} disconnect");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"tconn {Global.thisdevice} -remove");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "disconnect");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, $"tconn {device.Id} -remove");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -273,8 +303,28 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task RestartADB()
     {
-        await CallExternalProgram.ADB("kill-server");
-        await CallExternalProgram.HDC("kill -r");
+        // kill adb/hdc processes via DeviceManager when appropriate
+        if (Global.DeviceManager != null)
+        {
+            // send generic kill commands to each transport if needed
+            foreach (var dev in Global.DeviceManager.Devices)
+            {
+                switch (dev.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(dev, "kill-server");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(dev, "kill -r");
+                        break;
+                }
+            }
+        }
+        else
+        {
+            await FeaturesHelper.AdbCmd("", "kill-server");
+            await FeaturesHelper.HdcCmd("", "kill -r");
+        }
     }
 
     [RelayCommand]

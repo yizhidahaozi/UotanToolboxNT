@@ -1,13 +1,8 @@
 ﻿using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using SkiaSharp;
-using SukiUI.Dialogs;
-using System;
 using UotanToolbox.Common;
-using UotanToolbox.Common.PatchHelper;
 
 namespace UotanToolbox.Features.Wiredflash;
 

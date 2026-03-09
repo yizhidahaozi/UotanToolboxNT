@@ -97,13 +97,13 @@ public partial class AppmgrViewModel : MainPageBase
                 MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
                 if (sukiViewModel.Status == GetTranslation("Home_Android"))
                 {
-                    await CallExternalProgram.ADB($"-s {Global.thisdevice} push \"{Path.Join(Global.runpath, "Push", "list_apps")}\" /data/local/tmp/");
-                    await CallExternalProgram.ADB($"-s {Global.thisdevice} shell chmod 777 /data/local/tmp/list_apps");
-                    string fulllists = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell /data/local/tmp/list_apps ");
+                    await FeaturesHelper.AdbCmd(Global.thisdevice, $"push \"{Path.Join(Global.runpath, "Push", "list_apps")}\" /data/local/tmp/");
+                    await FeaturesHelper.AdbCmd(Global.thisdevice, "shell chmod 777 /data/local/tmp/list_apps");
+                    string fulllists = await FeaturesHelper.AdbCmd(Global.thisdevice, "shell /data/local/tmp/list_apps ");
                     List<ApplicationInfo> fullapplications = StringHelper.ParseApplicationInfo(fulllists);
                     string fullApplicationsList = !IsSystemAppDisplayed
-                        ? await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm list packages -3")
-                        : await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm list packages");
+                        ? await FeaturesHelper.AdbCmd(Global.thisdevice, "shell pm list packages -3")
+                        : await FeaturesHelper.AdbCmd(Global.thisdevice, "shell pm list packages");
                     if (fullApplicationsList.Contains("cannot connect to daemon"))
                     {
                         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -134,7 +134,7 @@ public partial class AppmgrViewModel : MainPageBase
                         {
                             return null;
                         }
-                        string combinedOutput = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell dumpsys package {packageName}");
+                        string combinedOutput = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell dumpsys package {packageName}");
                         string[] splitOutput = combinedOutput.Split('\n', ' ');
                         string otherInfo = GetVersionName(splitOutput) + " | " + GetInstalledDate(splitOutput) + " | " + GetSdkVersion(splitOutput);
                         return new ApplicationInfo { Name = packageName, DisplayName = StringHelper.RemoveLineFeed(displayName), OtherInfo = otherInfo };
@@ -144,18 +144,18 @@ public partial class AppmgrViewModel : MainPageBase
                                                              .OrderByDescending(app => app.Size)
                                                              .ThenBy(app => app.Name)];
                     Applications = new ObservableCollection<ApplicationInfo>(applicationInfos);
-                    await CallExternalProgram.ADB($"-s {Global.thisdevice} shell rm /data/local/tmp/list_apps");
+                    await FeaturesHelper.AdbCmd(Global.thisdevice, "shell rm /data/local/tmp/list_apps");
                 }
                 else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
                 {
-                    string[] applist = StringHelper.OHAppList(await CallExternalProgram.HDC($"-t {Global.thisdevice} shell bm dump -a"));
+                    string[] applist = StringHelper.OHAppList(await FeaturesHelper.HdcCmd(Global.thisdevice, "shell bm dump -a"));
                     HasItems = applist.Length > 2;
                     ApplicationInfo[] applicationInfo = new ApplicationInfo[applist.Length - 2];
                     ApplicationInfo[] OHApplicationInfos;
                     List<ApplicationInfo> OHApplicationList = null;
                     for (int i = 2; i < applist.Length; i++)
                     {
-                        string[] appinfo = StringHelper.OHAppInfo(await CallExternalProgram.HDC($"-t {Global.thisdevice} shell bm dump -n {applist[i]}"));
+                        string[] appinfo = StringHelper.OHAppInfo(await FeaturesHelper.HdcCmd(Global.thisdevice, $"shell bm dump -n {applist[i]}"));
                         applicationInfo[i - 2] = new ApplicationInfo { Name = applist[i], DisplayName = appinfo[1], OtherInfo = appinfo[2] + "|API:" + appinfo[0] };
                         if (i == applicationInfo.Length % 10)
                         {
@@ -228,7 +228,7 @@ public partial class AppmgrViewModel : MainPageBase
                     {
                         if (!string.IsNullOrEmpty(fileArray[i]))
                         {
-                            string output = await CallExternalProgram.ADB($"-s {Global.thisdevice} install -r \"{fileArray[i]}\"");
+                            string output = await FeaturesHelper.AdbCmd(Global.thisdevice, $"install -r \"{fileArray[i]}\"");
                             _ = output.Contains("Success")
                                 ? Global.MainToastManager.CreateToast()
                                                          .WithTitle(GetTranslation("Common_Succ"))
@@ -257,7 +257,7 @@ public partial class AppmgrViewModel : MainPageBase
                             try
                             {
                                 File.Copy(fileArray[i], Path.Combine(Global.runpath, "APK", Path.GetFileName(fileArray[i])));
-                                string output = await CallExternalProgram.HDC($"-t {Global.thisdevice} app install \"{Path.Combine("APK", Path.GetFileName(fileArray[i]))}\"");
+                                string output = await FeaturesHelper.HdcCmd(Global.thisdevice, $"app install \"{Path.Combine("APK", Path.GetFileName(fileArray[i]))}\"");
                                 _ = output.Contains("successfully")
                                     ? Global.MainToastManager.CreateToast()
                                                              .WithTitle(GetTranslation("Common_Succ"))
@@ -336,7 +336,7 @@ public partial class AppmgrViewModel : MainPageBase
             {
                 if (!string.IsNullOrEmpty(SelectedApplication()))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell monkey -p {SelectedApplication()} 1");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell monkey -p {SelectedApplication()} 1");
                 }
                 else
                 {
@@ -381,7 +381,7 @@ public partial class AppmgrViewModel : MainPageBase
             {
                 if (!string.IsNullOrEmpty(SelectedApplication()))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm disable {SelectedApplication()}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm disable {SelectedApplication()}");
                 }
                 else
                 {
@@ -427,7 +427,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm enable {selectedApp}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm enable {selectedApp}");
                 }
                 else
                 {
@@ -473,7 +473,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm uninstall {selectedApp}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm uninstall {selectedApp}");
                 }
                 else
                 {
@@ -490,7 +490,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.HDC($"-t {Global.thisdevice} app uninstall {selectedApp}");
+                    _ = await FeaturesHelper.HdcCmd(Global.thisdevice, $"app uninstall {selectedApp}");
                 }
                 else
                 {
@@ -538,7 +538,7 @@ public partial class AppmgrViewModel : MainPageBase
                 {
                     // Note: This command may vary depending on the requirements and platform specifics.
                     // The following is a general example and may not work as is.
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm uninstall -k {selectedApp}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm uninstall -k {selectedApp}");
                 }
                 else
                 {
@@ -585,10 +585,10 @@ public partial class AppmgrViewModel : MainPageBase
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
                     // Get the apk file of the selected app, and save it to the user's desktop.
-                    string apkFile = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm path {selectedApp}");
+                    string apkFile = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm path {selectedApp}");
                     apkFile = apkFile[(apkFile.IndexOf(':') + 1)..].Trim();
                     string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} pull {apkFile} {desktopPath}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"pull {apkFile} {desktopPath}");
                 }
                 else
                 {
@@ -634,7 +634,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm clear {selectedApp}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm clear {selectedApp}");
                 }
                 else
                 {
@@ -651,7 +651,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.HDC($"-t {Global.thisdevice} shell bm clean -n {selectedApp} -d");
+                    _ = await FeaturesHelper.HdcCmd(Global.thisdevice, $"shell bm clean -n {selectedApp} -d");
                 }
                 else
                 {
@@ -697,7 +697,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell am force-stop {selectedApp}");
+                    _ = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell am force-stop {selectedApp}");
                 }
                 else
                 {
@@ -717,7 +717,7 @@ public partial class AppmgrViewModel : MainPageBase
                 string selectedApp = SelectedApplication();
                 if (!string.IsNullOrEmpty(selectedApp))
                 {
-                    _ = await CallExternalProgram.HDC($"-t {Global.thisdevice} shell aa force-stop {selectedApp}");
+                    _ = await FeaturesHelper.HdcCmd(Global.thisdevice, $"shell aa force-stop {selectedApp}");
                 }
                 else
                 {
@@ -764,7 +764,7 @@ public partial class AppmgrViewModel : MainPageBase
             if (sukiViewModel.Status == GetTranslation("Home_Android"))
             {
                 string focus_name, package_name;
-                string dumpsys = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell \"dumpsys window | grep mCurrentFocus\"");
+                string dumpsys = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell \"dumpsys window | grep mCurrentFocus\"");
                 string text = await FeaturesHelper.ActiveApp(dumpsys);
                 Global.MainToastManager.CreateToast()
                                            .OfType(NotificationType.Information)

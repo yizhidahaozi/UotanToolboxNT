@@ -358,7 +358,7 @@ namespace UotanToolbox.Common
 
                 using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                 byte[] data = new byte[fs.Length];
-                fs.Read(data, 0, data.Length);
+                fs.ReadExactly(data);
 
                 // initcall_debug
                 int index = IndexOf(data, initcallSignature);

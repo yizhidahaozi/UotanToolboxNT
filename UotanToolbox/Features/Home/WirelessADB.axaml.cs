@@ -3,7 +3,6 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using ReactiveUI;
 using SukiUI.Controls;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;

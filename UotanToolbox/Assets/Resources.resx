@@ -261,6 +261,27 @@
   <data name="Home_Prompt" xml:space="preserve">
     <value>Prompt</value>
   </data>
+  <data name="Home_DeviceConnected" xml:space="preserve">
+    <value>Device {0} connected</value>
+  </data>
+  <data name="Home_DeviceDisconnected" xml:space="preserve">
+    <value>Device {0} disconnected</value>
+  </data>
+  <data name="Home_DeviceUpdated" xml:space="preserve">
+    <value>Device {0} updated</value>
+  </data>
+  <data name="Home_ADBScanCompleted" xml:space="preserve">
+    <value>ADB device scan completed</value>
+  </data>
+  <data name="Home_FastbootScanCompleted" xml:space="preserve">
+    <value>Fastboot device scan completed</value>
+  </data>
+  <data name="Home_HDCScanCompleted" xml:space="preserve">
+    <value>HDC device scan completed</value>
+  </data>
+  <data name="Home_ScanCompleted" xml:space="preserve">
+    <value>Device scan completed</value>
+  </data>
   <data name="Home_Disconnected" xml:space="preserve">
     <value>The device has been disconnected</value>
   </data>

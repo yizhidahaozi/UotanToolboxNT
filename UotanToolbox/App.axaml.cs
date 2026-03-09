@@ -33,6 +33,11 @@ public partial class App : Application
             : CultureInfo.CurrentCulture;
         Assets.Resources.Culture = CurCulture;
 
+        // set up global device manager reference
+        Global.DeviceManager = _provider?.GetRequiredService<UotanToolbox.Common.Devices.DeviceManager>();
+        // perform initial scan in background
+        _ = Global.DeviceManager?.ScanAsync();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             IDataTemplate viewLocator = _provider?.GetRequiredService<IDataTemplate>();
@@ -59,6 +64,16 @@ public partial class App : Application
         _ = services.AddSingleton<PageNavigationService>();
         services.AddSingleton<ISukiToastManager, SukiToastManager>();
         services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
+
+        // transport implementations for devices
+        services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.AdbTransport>();
+        services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.FastbootTransport>();
+        services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.HdcTransport>();
+
+        // device manager singleton
+        services.AddSingleton<UotanToolbox.Common.Devices.DeviceManager>(sp =>
+            new UotanToolbox.Common.Devices.DeviceManager(sp.GetServices<UotanToolbox.Common.Devices.IDeviceTransport>()));
+
         // Viewmodels
         _ = services.AddSingleton<MainViewModel>();
         System.Collections.Generic.IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies()

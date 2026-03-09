@@ -14,12 +14,13 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
+using UotanToolbox.Common.Devices;
 using UotanToolbox.Features.Settings;
 using UotanToolbox.Utilities;
 
 namespace UotanToolbox.Features.Home;
 
-public partial class HomeViewModel : MainPageBase
+public partial class HomeViewModel : MainPageBase, IDisposable
 {
     [ObservableProperty]
     private string _progressDisk = "0", _memLevel = "0", _status = "--", _bLStatus = "--",
@@ -45,6 +46,16 @@ public partial class HomeViewModel : MainPageBase
     public HomeViewModel() : base(GetTranslation("Sidebar_HomePage"), MaterialIconKind.HomeOutline, int.MinValue)
     {
         _ = CheckDeviceList();
+
+        // subscribe to device manager events so UI updates automatically
+        if (Global.DeviceManager != null)
+        {
+            Global.DeviceManager.DeviceAdded += DeviceManager_DeviceAdded;
+            Global.DeviceManager.DeviceRemoved += DeviceManager_DeviceRemoved;
+            Global.DeviceManager.DeviceUpdated += DeviceManager_DeviceUpdated;
+            Global.DeviceManager.ScanCompleted += DeviceManager_ScanCompleted;
+        }
+
         this.WhenAnyValue(x => x.SelectedSimpleContent)
             .Subscribe(option =>
             {
@@ -54,6 +65,7 @@ public partial class HomeViewModel : MainPageBase
                     _ = ConnectCore();
                 }
             });
+
         _ = CheckForUpdate();
     }
 
@@ -125,13 +137,14 @@ public partial class HomeViewModel : MainPageBase
 
     public async Task CheckDeviceList()
     {
+        // periodically scan devices using DeviceManager; event handlers will update UI as needed
         while (true)
         {
-            if (await ListChecker() == true)
+            if (Global.DeviceManager != null)
             {
-                CommonDevicesList = true;
+                await Global.DeviceManager.ScanAsync();
+                // refresh displayed list if there is any change (do not animate busy when automatic)
                 _ = await GetDevicesList();
-                CommonDevicesList = false;
             }
             await Task.Delay(1000);
         }
@@ -139,52 +152,52 @@ public partial class HomeViewModel : MainPageBase
 
     public async Task<bool> ListChecker()
     {
-        if (Global.checkdevice)
+        // retained for compatibility but underlying scan is now driven by DeviceManager
+        if (Global.DeviceManager != null)
         {
-            string[] devices = await GetDevicesInfo.DevicesList();
-            if (devices.Length != 0)
-            {
-                AvaloniaList<string> tempDeviceslist = new AvaloniaList<string>(devices);
-                if (Global.deviceslist != null)
-                {
-                    if (Global.deviceslist.SequenceEqual(tempDeviceslist) != true)
-                    {
-                        return true;
-                    }
-                }
-                else if (Global.deviceslist == null)
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                if (Global.deviceslist != null && Global.deviceslist.Count != 0)
-                {
-                    Global.deviceslist.Clear();
-                    Global.thisdevice = null;
-                    SimpleContent = null;
-                    IsConnecting = false;
-                    Global.MainToastManager.CreateToast()
-                        .WithTitle(GetTranslation("Home_Prompt"))
-                        .WithContent(GetTranslation("Home_Disconnected"))
-                        .OfType(NotificationType.Warning)
-                        .Dismiss().ByClicking()
-                        .Dismiss().After(TimeSpan.FromSeconds(3))
-                        .Queue();
-                    MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-                    Status = sukiViewModel.Status = BLStatus = sukiViewModel.BLStatus = VABStatus = sukiViewModel.VABStatus = CodeName = sukiViewModel.CodeName = "--";
-                    VNDKVersion = CPUCode = PowerOnTime = DeviceBrand = DeviceModel = SystemSDK = CPUABI = DisplayHW = Density = DiskType = BoardID = Platform = Compile = Kernel = BatteryInfo = UseMem = DiskInfo = "--";
-                    BatteryLevel = MemLevel = ProgressDisk = "0";
-                }
-            }
+            await Global.DeviceManager.ScanAsync();
+            return true;
         }
         return false;
     }
 
+    private void DeviceManager_DeviceAdded(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    {
+        // if new device appears refresh list, keep selection
+        _ = GetDevicesList();
+        Global.MainToastManager?.CreateToast()
+            .WithTitle(GetTranslation("Home_Prompt"))
+            .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
+            .OfType(NotificationType.Information)
+            .Dismiss().After(TimeSpan.FromSeconds(3))
+            .Queue();
+    }
+
+    private void DeviceManager_DeviceRemoved(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    {
+        // refresh list; if removed device was selected, pick another or clear
+        _ = GetDevicesList();
+        if (Global.thisdevice == e.Device.Id)
+        {
+            Global.thisdevice = SimpleContent?.FirstOrDefault();
+        }
+        Global.MainToastManager?.CreateToast()
+            .WithTitle(GetTranslation("Home_Prompt"))
+            .WithContent(string.Format(GetTranslation("Home_DeviceDisconnected"), e.Device.Id))
+            .OfType(NotificationType.Warning)
+            .Dismiss().After(TimeSpan.FromSeconds(3))
+            .Queue();
+    }
+
     public async Task<bool> GetDevicesList()
     {
-        string[] devices = await GetDevicesInfo.DevicesList();
+        if (Global.DeviceManager == null)
+        {
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
+            return false;
+        }
+        await Global.DeviceManager.ScanAsync();
+        var devices = Global.DeviceManager.Devices.Select(d => d.Id).ToArray();
         if (devices.Length != 0)
         {
             Global.deviceslist = new AvaloniaList<string>(devices);
@@ -234,20 +247,68 @@ public partial class HomeViewModel : MainPageBase
         IsConnecting = false;
     }
 
+    // track last-known device sets per transport for manual refresh notifications
+    private Dictionary<TransportType, HashSet<string>> _previousDeviceSets = new();
+
     [RelayCommand]
     public async Task FreshDeviceList()
     {
         Global.root = true;
-        AvaloniaList<string> OldDeviceList = Global.deviceslist;
+        // manually show busy indicator during explicit refresh
+        CommonDevicesList = true;
+
+        // capture old sets
+        var oldSets = _previousDeviceSets;
+
         if (await GetDevicesList() && Global.thisdevice != null && string.Join("", Global.deviceslist).Contains(Global.thisdevice))
         {
-            if (OldDeviceList != Global.deviceslist)
+            if (!oldSets.Any())
             {
-                CommonDevicesList = true;
+                // first refresh, treat as full update but still show separate toasts
+            }
+
+            // compute new sets after scanning
+            var newSets = Global.DeviceManager.Devices
+                .GroupBy(d => d.Transport)
+                .ToDictionary(g => g.Key, g => new HashSet<string>(g.Select(d => d.Id)));
+
+            // compare and notify transport-specific changes
+            foreach (var kv in newSets)
+            {
+                var transport = kv.Key;
+                var set = kv.Value;
+                bool changed = !oldSets.ContainsKey(transport) || !oldSets[transport].SetEquals(set);
+                if (changed)
+                {
+                    string toastText = transport switch
+                    {
+                        TransportType.Adb => GetTranslation("Home_ADBScanCompleted"),
+                        TransportType.Fastboot => GetTranslation("Home_FastbootScanCompleted"),
+                        TransportType.Hdc => GetTranslation("Home_HDCScanCompleted"),
+                        _ => null
+                    };
+                    if (toastText != null)
+                    {
+                        Global.MainToastManager?.CreateToast()
+                            .WithTitle(GetTranslation("Home_Prompt"))
+                            .WithContent(toastText)
+                            .OfType(NotificationType.Information)
+                            .Dismiss().After(TimeSpan.FromSeconds(2))
+                            .Queue();
+                    }
+                }
+            }
+
+            // preserve new sets for next refresh
+            _previousDeviceSets = newSets;
+
+            if (!oldSets.SequenceEqual(newSets))
+            {
                 await ConnectCore();
-                CommonDevicesList = false;
             }
         }
+
+        CommonDevicesList = false;
     }
 
     [RelayCommand]
@@ -255,22 +316,28 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -284,31 +351,39 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot recovery");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem reboot-recovery");
-                if (output.Contains("unknown command"))
+                switch (device.Transport)
                 {
-                    _ = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
-                    _ = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot");
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                        break;
+                    case TransportType.Fastboot:
+                        {
+                            string output = await Global.DeviceManager.ExecuteAsync(device, "oem reboot-recovery");
+                            if (output.Contains("unknown command"))
+                            {
+                                await Global.DeviceManager.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
+                                await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                            }
+                            else
+                            {
+                                await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                            }
+                        }
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -recovery");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
                 }
-                else
-                {
-                    _ = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot recovery");
-                }
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -recovery");
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -322,22 +397,28 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot bootloader");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot-bootloader");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -bootloader");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot bootloader");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot-bootloader");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -bootloader");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -351,22 +432,28 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot fastboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot-fastboot");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -fastboot");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot fastboot");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot-fastboot");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -fastboot");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -380,25 +467,33 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot -p");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot"))
-            {
-                string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem poweroff");
-                _ = output.Contains("unknown command")
-                    ? Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_NotSupported")).Dismiss().ByClickingBackground().TryShow()
-                    : Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("Home_ShutDownTip")).Dismiss().ByClickingBackground().TryShow();
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot shutdown");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot -p");
+                        break;
+                    case TransportType.Fastboot:
+                        {
+                            string output = await Global.DeviceManager.ExecuteAsync(device, "oem poweroff");
+                            _ = output.Contains("unknown command")
+                                ? Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_NotSupported")).Dismiss().ByClickingBackground().TryShow()
+                                : Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("Home_ShutDownTip")).Dismiss().ByClickingBackground().TryShow();
+                        }
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot shutdown");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
@@ -412,27 +507,60 @@ public partial class HomeViewModel : MainPageBase
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Android") || sukiViewModel.Status == GetTranslation("Home_Recovery") || sukiViewModel.Status == GetTranslation("Home_Sideload"))
+            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            if (device != null)
             {
-                await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot edl");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem edl");
-            }
-            else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
-            {
-                await CallExternalProgram.HDC($"-t {Global.thisdevice} target boot -edl");
+                switch (device.Transport)
+                {
+                    case TransportType.Adb:
+                        await Global.DeviceManager.ExecuteAsync(device, "reboot edl");
+                        break;
+                    case TransportType.Fastboot:
+                        await Global.DeviceManager.ExecuteAsync(device, "oem edl");
+                        break;
+                    case TransportType.Hdc:
+                        await Global.DeviceManager.ExecuteAsync(device, "target boot -edl");
+                        break;
+                    default:
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                        break;
+                }
             }
             else
             {
-                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
             }
         }
         else
         {
             Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_NotConnected")).Dismiss().ByClickingBackground().TryShow();
+        }
+    }
+
+    private void DeviceManager_DeviceUpdated(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    {
+        // update notification when a device's properties change
+        Global.MainToastManager?.CreateToast()
+            .WithTitle(GetTranslation("Home_Prompt"))
+            .WithContent(string.Format(GetTranslation("Home_DeviceUpdated"), e.Device.Id))
+            .OfType(NotificationType.Information)
+            .Dismiss().After(TimeSpan.FromSeconds(3))
+            .Queue();
+    }
+
+    private void DeviceManager_ScanCompleted(object sender, EventArgs e)
+    {
+            // scan completed event is intentionally silent; manual refresh triggers notifications
+    }
+
+    public void Dispose()
+    {
+        if (Global.DeviceManager != null)
+        {
+            Global.DeviceManager.DeviceAdded -= DeviceManager_DeviceAdded;
+            Global.DeviceManager.DeviceRemoved -= DeviceManager_DeviceRemoved;
+            Global.DeviceManager.DeviceUpdated -= DeviceManager_DeviceUpdated;
+            Global.DeviceManager.ScanCompleted -= DeviceManager_ScanCompleted;
         }
     }
 }

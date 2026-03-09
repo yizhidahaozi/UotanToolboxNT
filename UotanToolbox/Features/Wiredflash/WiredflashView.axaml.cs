@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
+using UotanToolbox.Common.Devices;
 using UotanToolbox.Common.PatchHelper;
 using ZstdSharp;
 
@@ -34,52 +35,28 @@ public partial class WiredflashView : UserControl
         InitializeComponent();
     }
 
-    public async Task Fastboot(string fbshell)//Fastboot实时输出
+    // helper to run fastboot via device manager or fallback
+    private Task<string> Fastboot(string cmd)
     {
-        await Task.Run(() =>
+        if (Global.DeviceManager != null)
         {
-            string cmd = Path.Combine(Global.bin_path, "platform-tools", "fastboot");
-            ProcessStartInfo fastboot = new ProcessStartInfo(cmd, fbshell)
-            {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using Process fb = new Process();
-            fb.StartInfo = fastboot;
-            _ = fb.Start();
-            fb.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
-            fb.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
-            fb.BeginOutputReadLine();
-            fb.BeginErrorReadLine();
-            fb.WaitForExit();
-            fb.Close();
-        });
+            var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Fastboot);
+            if (dev != null)
+                return Global.DeviceManager.ExecuteAsync(dev, cmd);
+        }
+        return FeaturesHelper.FastbootCmd(Global.thisdevice, cmd);
     }
 
-    public async Task ADB(string adbshell)
+    // helper to run adb via device manager or fallback
+    private Task<string> Adb(string cmd)
     {
-        await Task.Run(() =>
+        if (Global.DeviceManager != null)
         {
-            string cmd = Path.Combine(Global.bin_path, "platform-tools", "adb");
-            ProcessStartInfo adbexe = new ProcessStartInfo(cmd, adbshell)
-            {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using Process adb = new Process();
-            adb.StartInfo = adbexe;
-            _ = adb.Start();
-            adb.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
-            adb.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
-            adb.BeginOutputReadLine();
-            adb.BeginErrorReadLine();
-            adb.WaitForExit();
-            adb.Close();
-        });
+            var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Adb);
+            if (dev != null)
+                return Global.DeviceManager.ExecuteAsync(dev, cmd);
+        }
+        return FeaturesHelper.AdbCmd(Global.thisdevice, cmd);
     }
 
     public async Task RunBat(string batpath)//调用Bat
@@ -189,7 +166,7 @@ public partial class WiredflashView : UserControl
     private async void CheckRoot(object sender, RoutedEventArgs args)
     {
         Global.MainDialogManager.CreateDialog()
-                            .WithViewModel( _ => new SetMagiskDialogViewModel())
+                            .WithViewModel(_ => new SetMagiskDialogViewModel())
                             .TryShow();
     }
 
@@ -376,8 +353,8 @@ public partial class WiredflashView : UserControl
                             }
                         }
                         string slot = "";
-                        FileHelper.Write(update_status, await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar snapshot-update-status"));
-                        string active = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar current-slot");
+                        FileHelper.Write(update_status, await Fastboot($"-s {Global.thisdevice} getvar snapshot-update-status"));
+                        string active = await Fastboot($"-s {Global.thisdevice} getvar current-slot");
                         if (active.Contains("current-slot: a"))
                         {
                             slot = "_a";
@@ -390,7 +367,7 @@ public partial class WiredflashView : UserControl
                         {
                             slot = null;
                         }
-                        string cow = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                        string cow = await Fastboot($"-s {Global.thisdevice} getvar all");
                         string[] cowparts = FeaturesHelper.GetVPartList(cow);
                         for (int i = 0; i < cowparts.Length; i++)
                         {
@@ -416,7 +393,7 @@ public partial class WiredflashView : UserControl
                             {
                                 deleteslot = "_a";
                             }
-                            string part = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                            string part = await Fastboot($"-s {Global.thisdevice} getvar all");
                             string[] deleteslotparts = FeaturesHelper.GetVPartList(part);
                             for (int i = 0; i < deleteslotparts.Length; i++)
                             {
@@ -434,7 +411,7 @@ public partial class WiredflashView : UserControl
                         }
                         if (succ)
                         {
-                            string part = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                            string part = await Fastboot($"-s {Global.thisdevice} getvar all");
                             string[] vparts = FeaturesHelper.GetVPartList(part);
                             for (int i = 0 + c; i < fbdflashparts.Length; i++)
                             {
@@ -733,7 +710,7 @@ public partial class WiredflashView : UserControl
                     output = "";
                     WiredflashLog.Text = "";
                     string shell = string.Format($"-s {Global.thisdevice} sideload \"{AdbSideloadFile.Text}\"");
-                    await ADB(shell);
+                    await Adb(shell);
                     Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
                     MoreFlashBusy(false);
                 }

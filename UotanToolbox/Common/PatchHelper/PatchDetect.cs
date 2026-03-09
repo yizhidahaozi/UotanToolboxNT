@@ -64,7 +64,7 @@ namespace UotanToolbox.Common.PatchHelper
                 }
                 string[] ksuFiles = Directory.GetFiles(Patchinfo.TempPath, "libksud.so", SearchOption.AllDirectories);
                 bool isksu_apk = ksuFiles.Length > 0;
-                
+
                 if (isMagisk)
                 {
                     Patchinfo.Mode = PatchMode.Magisk;

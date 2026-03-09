@@ -42,6 +42,9 @@ namespace UotanToolbox.Common
 
         public static string BootPatchPath { get; internal set; }
         public static string MagiskAPKPath { get; internal set; }
+
+        // 设备管理器实例
+        public static UotanToolbox.Common.Devices.DeviceManager DeviceManager;
     }
     public class BootInfo(string sha1, string path, string tempPath, bool isUseful, bool gki2, string version, string kmi, string osversion, string patchlevel, bool haveramdisk, bool havekernel, bool havedtb, string dtbname, string arch, string compress)
     {

@@ -38,7 +38,7 @@ namespace UotanToolbox.Common.PatchHelper
                     s.CopyTo(ms);
                     byte[] data = ms.ToArray();
                     var extractedFiles = ProcessData(data, outputDir);
-                    
+
                     if (!string.IsNullOrEmpty(kernelVersion))
                     {
                         var match = extractedFiles.Keys.FirstOrDefault(k => k.EndsWith(".ko") && k.Contains(kernelVersion));
@@ -46,7 +46,7 @@ namespace UotanToolbox.Common.PatchHelper
                         {
                             return Path.Combine(outputDir, match);
                         }
-                        
+
                         throw new Exception(string.Format(FeaturesHelper.GetTranslation("Patch_KSUKoNotFound"), kernelVersion));
                     }
 
@@ -119,7 +119,7 @@ namespace UotanToolbox.Common.PatchHelper
                 if (content != null && IsElf(content))
                 {
                     string finalName = IdentifyAsset(content, recordedNames, i);
-                    
+
                     string uniqueName = finalName;
                     int counter = 1;
                     while (results.ContainsKey(uniqueName))
@@ -149,8 +149,8 @@ namespace UotanToolbox.Common.PatchHelper
             string vermagic = GetVermagic(content);
             if (!string.IsNullOrEmpty(vermagic))
             {
-                var koMatch = recordedNames.FirstOrDefault(k => k.EndsWith(".ko") && 
-                    Regex.IsMatch(k, @"-(\d+\.\d+)_") && 
+                var koMatch = recordedNames.FirstOrDefault(k => k.EndsWith(".ko") &&
+                    Regex.IsMatch(k, @"-(\d+\.\d+)_") &&
                     vermagic.Contains(Regex.Match(k, @"-(\d+\.\d+)_").Groups[1].Value));
 
                 if (koMatch != null) return koMatch;

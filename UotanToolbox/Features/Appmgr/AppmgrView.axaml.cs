@@ -44,11 +44,11 @@ public partial class AppmgrView : UserControl
                              MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
                              if (sukiViewModel.Status == GetTranslation("Home_Android"))
                              {
-                                 await CallExternalProgram.ADB($"-s {Global.thisdevice} shell pm uninstall -k --user 0 {packageName}");
+                                 await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell pm uninstall -k --user 0 {packageName}");
                              }
                              else if (sukiViewModel.Status == GetTranslation("Home_OpenHOS"))
                              {
-                                 await CallExternalProgram.HDC($"-t {Global.thisdevice} app uninstall {packageName}");
+                                 await FeaturesHelper.HdcCmd(Global.thisdevice, $"app uninstall {packageName}");
                              }
                              else
                              {

@@ -215,7 +215,7 @@ public partial class ModifypartitionView : UserControl
                     PartList.ItemsSource = null;
                     PartSize.Text = "";
                     Global.checkdevice = false;
-                    string allinfo = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                    string allinfo = await FeaturesHelper.FastbootCmd(Global.thisdevice, "getvar all");
                     string[] parts = new string[1000];
                     string[] allinfos = allinfo.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
                     for (int i = 0; i < allinfos.Length; i++)
@@ -246,7 +246,7 @@ public partial class ModifypartitionView : UserControl
                     PartList.ItemsSource = null;
                     PartSize.Text = "";
                     Global.checkdevice = false;
-                    string allinfo = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                    string allinfo = await FeaturesHelper.FastbootCmd(Global.thisdevice, "getvar all");
                     string[] parts = new string[1000];
                     string[] allinfos = allinfo.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
                     if ((bool)ShowAllPart.IsChecked)
@@ -403,7 +403,7 @@ public partial class ModifypartitionView : UserControl
                     {
                         RMPartBut.IsEnabled = false;
                         ESPONBut.IsEnabled = false;
-                        await CallExternalProgram.Fastboot($"-s {Global.thisdevice} delete-logical-partition {IdNumber.Text}");
+                        await FeaturesHelper.FastbootCmd(Global.thisdevice, $"delete-logical-partition {IdNumber.Text}");
                         ReadPart(sender, args);
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
                         RMPartBut.IsEnabled = true;
@@ -599,7 +599,7 @@ public partial class ModifypartitionView : UserControl
                     if (!string.IsNullOrEmpty(NewPartitionName.Text))
                     {
                         MKPartBut.IsEnabled = false;
-                        await CallExternalProgram.Fastboot($"-s {Global.thisdevice} create-logical-partition {NewPartitionName.Text} 00");
+                        await FeaturesHelper.FastbootCmd(Global.thisdevice, $"create-logical-partition {NewPartitionName.Text} 00");
                         ReadPart(sender, args);
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
                         MKPartBut.IsEnabled = true;

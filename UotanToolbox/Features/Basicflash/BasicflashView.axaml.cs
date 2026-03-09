@@ -7,8 +7,10 @@ using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
+using UotanToolbox.Common.Devices;
 using UotanToolbox.Common.PatchHelper;
 
 namespace UotanToolbox.Features.Basicflash;
@@ -51,6 +53,21 @@ public partial class BasicflashView : UserControl
         }
     }
 
+    // helper to run fastboot via device manager or fallback
+    private Task<string> Fastboot(string deviceId, string cmd)
+    {
+        if (Global.DeviceManager != null)
+        {
+            var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == deviceId && d.Transport == TransportType.Fastboot);
+            if (dev != null)
+                return Global.DeviceManager.ExecuteAsync(dev, cmd);
+        }
+        return CallExternalProgram.Fastboot($"-s {deviceId} {cmd}");
+    }
+
+    // helper to run adb through device manager helper
+    private Task<string> Adb(string cmd) => FeaturesHelper.AdbCmd(Global.thisdevice, cmd);
+
     private async void OpenUnlockFile(object sender, RoutedEventArgs args)
     {
         TopLevel topLevel = TopLevel.GetTopLevel(this);
@@ -67,6 +84,7 @@ public partial class BasicflashView : UserControl
 
     private async void Unlock(object sender, RoutedEventArgs args)
     {
+
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
@@ -86,27 +104,27 @@ public partial class BasicflashView : UserControl
                 }
                 else if (!string.IsNullOrEmpty(UnlockFile.Text) && string.IsNullOrEmpty(UnlockCode.Text))
                 {
-                    _ = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flash unlock \"{UnlockFile.Text}\"");
-                    string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem unlock-go");
+                    _ = await Fastboot(Global.thisdevice, $"flash unlock \"{UnlockFile.Text}\"");
+                    string output = await Fastboot(Global.thisdevice, "oem unlock-go");
                     _ = output.Contains("OKAY")
-                        ? Global.MainDialogManager.CreateDialog()
-                                                  .WithTitle(GetTranslation("Common_Succ"))
-                                                  .OfType(NotificationType.Success)
-                                                  .WithContent(GetTranslation("Basicflash_UnlockSucc"))
-                                                  .Dismiss().ByClickingBackground()
-                                                  .TryShow()
-                        : Global.MainDialogManager.CreateDialog()
-                                                  .WithTitle(GetTranslation("Common_Error"))
-                                                  .OfType(NotificationType.Error)
-                                                  .WithContent(GetTranslation("Basicflash_UnlockFailed"))
-                                                  .Dismiss().ByClickingBackground()
-                                                  .TryShow();
+                                            ? Global.MainDialogManager.CreateDialog()
+                                                                      .WithTitle(GetTranslation("Common_Succ"))
+                                                                      .OfType(NotificationType.Success)
+                                                                      .WithContent(GetTranslation("Basicflash_UnlockSucc"))
+                                                                      .Dismiss().ByClickingBackground()
+                                                                      .TryShow()
+                                            : Global.MainDialogManager.CreateDialog()
+                                                                      .WithTitle(GetTranslation("Common_Error"))
+                                                                      .OfType(NotificationType.Error)
+                                                                      .WithContent(GetTranslation("Basicflash_UnlockFailed"))
+                                                                      .Dismiss().ByClickingBackground()
+                                                                      .TryShow();
                 }
                 else if (string.IsNullOrEmpty(UnlockFile.Text) && !string.IsNullOrEmpty(UnlockCode.Text))
                 {
                     if (UnlockBand.SelectedItem.ToString() == GetTranslation("Band_Common"))
                     {
-                        string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem unlock {UnlockCode.Text}");
+                        string output = await Fastboot(Global.thisdevice, $"oem unlock {UnlockCode.Text}");
                         FileHelper.Write(unlock_log_path, output);
                         _ = output.Contains("OKAY")
                             ? Global.MainDialogManager.CreateDialog()
@@ -126,7 +144,7 @@ public partial class BasicflashView : UserControl
                     {
                         if (UnlockCode.Text.Length == 16)
                         {
-                            string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem unlock {UnlockCode.Text}");
+                            string output = await Fastboot(Global.thisdevice, $"oem unlock {UnlockCode.Text}");
                             FileHelper.Write(unlock_log_path, output);
                             if (output.Contains("OKAY"))
                             {
@@ -182,7 +200,7 @@ public partial class BasicflashView : UserControl
                         {
                             unlockcode = "0x" + UnlockCode.Text;
                         }
-                        string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem unlock {unlockcode}");
+                        string output = await Fastboot(Global.thisdevice, $"oem unlock {unlockcode}");
                         FileHelper.Write(unlock_log_path, output);
                         _ = output.Contains("OKAY")
                             ? Global.MainDialogManager.CreateDialog()
@@ -249,8 +267,8 @@ public partial class BasicflashView : UserControl
                       .OfType(NotificationType.Warning)
                       .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                       {
-                          await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem lock-go");
-                          string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flashing lock");
+                          await Fastboot(Global.thisdevice, "oem lock-go");
+                          string output = await Fastboot(Global.thisdevice, "flashing lock");
                           if (output.Contains("OKAY"))
                           {
                               Global.MainDialogManager.CreateDialog()
@@ -314,7 +332,7 @@ public partial class BasicflashView : UserControl
                                                 {
                                                     BusyBaseUnlock.IsBusy = true;
                                                     BaseUnlockPanel.IsEnabled = false;
-                                                    await CallExternalProgram.Fastboot($"-s {Global.thisdevice} {SimpleContent.SelectedItem}");
+                                                    await Fastboot(Global.thisdevice, SimpleContent.SelectedItem.ToString());
                                                     Global.MainDialogManager.CreateDialog()
                                                     .WithTitle(GetTranslation("Common_Execution"))
                                                     .OfType(NotificationType.Information)
@@ -384,7 +402,7 @@ public partial class BasicflashView : UserControl
                 FlashRecovery.IsEnabled = false;
                 if (!string.IsNullOrEmpty(RecFile.Text))
                 {
-                    string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} {shell} \"{RecFile.Text}\"");
+                    string output = await Fastboot(Global.thisdevice, $"{shell} \"{RecFile.Text}\"");
                     if (!output.Contains("FAILED") && !output.Contains("error"))
                     {
                         Global.MainDialogManager.CreateDialog()
@@ -393,15 +411,15 @@ public partial class BasicflashView : UserControl
                                                     .OfType(NotificationType.Success)
                                                     .WithActionButton(GetTranslation("Basicflash_RebootToFastbootd"), async _ =>
                                                     {
-                                                        await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot-fastboot");
+                                                        await Fastboot(Global.thisdevice, "reboot-fastboot");
                                                     }, true)
                                                     .WithActionButton(GetTranslation("Basicflash_RebootToRecovery"), async _ =>
                                                     {
-                                                        output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} oem reboot-recovery");
+                                                        output = await Fastboot(Global.thisdevice, "oem reboot-recovery");
                                                         if (output.Contains("unknown command"))
                                                         {
-                                                            await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
-                                                            await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot");
+                                                            await Fastboot(Global.thisdevice, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
+                                                            await Fastboot(Global.thisdevice, "reboot");
                                                         }
                                                     }, true)
                                                     .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
@@ -478,7 +496,7 @@ public partial class BasicflashView : UserControl
                 FlashRecovery.IsEnabled = false;
                 if (!string.IsNullOrEmpty(RecFile.Text))
                 {
-                    string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} boot \"{RecFile.Text}\"");
+                    string output = await Fastboot(Global.thisdevice, $"boot \"{RecFile.Text}\"");
                     _ = output.Contains("Finished")
                         ? Global.MainDialogManager.CreateDialog()
                                                   .WithTitle(GetTranslation("Common_Succ"))
@@ -548,7 +566,7 @@ public partial class BasicflashView : UserControl
                 RebootPanel.IsEnabled = false;
                 if (RebootComm.SelectedItem != null)
                 {
-                    await CallExternalProgram.ADB($"-s {Global.thisdevice} {RebootComm.SelectedItem}");
+                    await FeaturesHelper.AdbCmd(Global.thisdevice, RebootComm.SelectedItem.ToString());
                     Global.MainDialogManager.CreateDialog()
                                         .WithTitle(GetTranslation("Common_Execution"))
                                         .OfType(NotificationType.Information)
@@ -711,12 +729,12 @@ public partial class BasicflashView : UserControl
                                         .WithTitle(GetTranslation("Common_Succ"))
                                         .WithContent(GetTranslation("Basicflash_PatchDone"))
                                         .OfType(NotificationType.Success)
-                                        .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => 
+                                        .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
                                             await FlashBoot(newboot, Path.GetFileNameWithoutExtension(part));
                                             FileHelper.OpenFolder(Path.Combine(Path.GetDirectoryName(newboot)));
                                         }, true)
-                                        .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => 
+                                        .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ =>
                                         {
                                             FileHelper.OpenFolder(Path.Combine(Path.GetDirectoryName(newboot)));
                                         }, true)
@@ -748,14 +766,14 @@ public partial class BasicflashView : UserControl
             if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
             {
                 Global.checkdevice = false;
-                string output = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} flash {part} \"{boot}\"");
+                string output = await Fastboot(Global.thisdevice, $"flash {part} \"{boot}\"");
                 if (!output.Contains("FAILED") && !output.Contains("error"))
                 {
                     Global.MainDialogManager.CreateDialog()
                                                 .WithTitle(GetTranslation("Common_Succ"))
                                                 .WithContent(GetTranslation("Basicflash_BootFlashSucc"))
                                                 .OfType(NotificationType.Success)
-                                                .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => await CallExternalProgram.Fastboot($"-s {Global.thisdevice} reboot"), true)
+                                                .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => await Fastboot(Global.thisdevice, "reboot"), true)
                                                 .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
                                                 .TryShow();
                 }
@@ -802,8 +820,8 @@ public partial class BasicflashView : UserControl
                 InstallZIP.IsEnabled = false;
                 if (sukiViewModel.Status == "Recovery" && TWRPInstall.IsChecked == true)
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} push \"{MagiskFile.Text}\" /tmp/magisk.apk");
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp install /tmp/magisk.apk");
+                    _ = await Adb($"push \"{MagiskFile.Text}\" /tmp/magisk.apk");
+                    _ = await Adb("shell twrp install /tmp/magisk.apk");
                 }
                 else if (!(sukiViewModel.Status == "Recovery") && TWRPInstall.IsChecked == true && !(sukiViewModel.Status == GetTranslation("Home_Android")))
                 {
@@ -818,17 +836,17 @@ public partial class BasicflashView : UserControl
                 {
                     if (sukiViewModel.Status == GetTranslation("Home_Recovery"))
                     {
-                        string output = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp sideload");
+                        string output = await Adb("shell twrp sideload");
                         if (output.Contains("not found"))
                         {
-                            await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot sideload");
+                            await Adb("reboot sideload");
                         }
                         await Task.Delay(2000);
                         await GetDevicesInfo.SetDevicesInfoLittle();
                     }
                     if (sukiViewModel.Status == "Sideload")
                     {
-                        _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} sideload \"{MagiskFile.Text}\"");
+                        _ = await Adb($"sideload \"{MagiskFile.Text}\"");
                     }
                     else
                     {
@@ -852,7 +870,7 @@ public partial class BasicflashView : UserControl
                                                     {
                                                         BusyInstall.IsBusy = true;
                                                         InstallZIP.IsEnabled = false;
-                                                        await CallExternalProgram.ADB($"-s {Global.thisdevice} push \"{MagiskFile.Text}\" /sdcard/magisk.apk");
+                                                        await Adb($"push \"{MagiskFile.Text}\" /sdcard/magisk.apk");
                                                         Global.MainDialogManager.CreateDialog()
                                                                                     .WithTitle(GetTranslation("ConnectionDialog_Notice"))
                                                                                     .OfType(NotificationType.Information)
@@ -893,7 +911,7 @@ public partial class BasicflashView : UserControl
                                             .Dismiss().ByClickingBackground()
                                             .TryShow();
             }
-            
+
         }
         else
         {
@@ -917,8 +935,8 @@ public partial class BasicflashView : UserControl
             {
                 if (sukiViewModel.Status == "Recovery")
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} push \"{Path.Combine(Global.runpath, "ZIP", "DisableAutoRecovery.zip")}\" /tmp/");
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp install /tmp/DisableAutoRecovery.zip");
+                    _ = await Adb($"push \"{Path.Combine(Global.runpath, "ZIP", "DisableAutoRecovery.zip")}\" /tmp/");
+                    _ = await Adb("shell twrp install /tmp/DisableAutoRecovery.zip");
                 }
                 else
                 {
@@ -934,17 +952,17 @@ public partial class BasicflashView : UserControl
             {
                 if (sukiViewModel.Status == GetTranslation("Home_Recovery"))
                 {
-                    string output = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp sideload");
+                    string output = await Adb("shell twrp sideload");
                     if (output.Contains("not found"))
                     {
-                        await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot sideload");
+                        await Adb("reboot sideload");
                     }
                     await Task.Delay(2000);
                     await GetDevicesInfo.SetDevicesInfoLittle();
                 }
                 if (sukiViewModel.Status == "Sideload")
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} sideload ZIP/DisableAutoRecovery.zip");
+                    _ = await Adb("sideload ZIP/DisableAutoRecovery.zip");
                 }
                 else
                 {
@@ -987,8 +1005,8 @@ public partial class BasicflashView : UserControl
             {
                 if (sukiViewModel.Status == "Recovery")
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} push \"{Path.Combine(Global.runpath, "ZIP", "copy-partitions.zip")}\" /tmp/");
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp install /tmp/copy-partitions.zip");
+                    _ = await Adb($"push \"{Path.Combine(Global.runpath, "ZIP", "copy-partitions.zip")}\" /tmp/");
+                    _ = await Adb("shell twrp install /tmp/copy-partitions.zip");
                 }
                 else
                 {
@@ -1004,17 +1022,17 @@ public partial class BasicflashView : UserControl
             {
                 if (sukiViewModel.Status == GetTranslation("Home_Recovery"))
                 {
-                    string output = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp sideload");
+                    string output = await Adb("shell twrp sideload");
                     if (output.Contains("not found"))
                     {
-                        await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot sideload");
+                        await Adb("reboot sideload");
                     }
                     await Task.Delay(2000);
                     await GetDevicesInfo.SetDevicesInfoLittle();
                 }
                 if (sukiViewModel.Status == "Sideload")
                 {
-                    _ = await CallExternalProgram.ADB($"-s {Global.thisdevice} sideload ZIP/copy-partitions.zip");
+                    _ = await Adb("sideload ZIP/copy-partitions.zip");
                 }
                 else
                 {

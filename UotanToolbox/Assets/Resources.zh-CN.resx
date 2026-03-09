@@ -261,6 +261,27 @@
   <data name="Home_Prompt" xml:space="preserve">
     <value>提示</value>
   </data>
+  <data name="Home_DeviceConnected" xml:space="preserve">
+    <value>设备 {0} 已连接</value>
+  </data>
+  <data name="Home_DeviceDisconnected" xml:space="preserve">
+    <value>设备 {0} 已断开</value>
+  </data>
+  <data name="Home_DeviceUpdated" xml:space="preserve">
+    <value>设备 {0} 已更新</value>
+  </data>
+  <data name="Home_ADBScanCompleted" xml:space="preserve">
+    <value>ADB 设备扫描已完成</value>
+  </data>
+  <data name="Home_FastbootScanCompleted" xml:space="preserve">
+    <value>Fastboot 设备扫描已完成</value>
+  </data>
+  <data name="Home_HDCScanCompleted" xml:space="preserve">
+    <value>HDC 设备扫描已完成</value>
+  </data>
+  <data name="Home_ScanCompleted" xml:space="preserve">
+    <value>设备扫描已完成</value>
+  </data>
   <data name="Home_Disconnected" xml:space="preserve">
     <value>设备已断开连接</value>
   </data>
