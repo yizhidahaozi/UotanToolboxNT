@@ -37,6 +37,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     [ObservableProperty] private bool _animationsEnabled;
     [ObservableProperty] private MainPageBase _activePage;
     [ObservableProperty] private bool _windowLocked = false;
+    private bool _isApplyingSelection;
+    private int _consecutiveEmptyScans;
 
     private static string GetTranslation(string key)
     {
@@ -59,10 +61,20 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         this.WhenAnyValue(x => x.SelectedSimpleContent)
             .Subscribe(option =>
             {
-                if (option != null && option != Global.thisdevice && SimpleContent != null && SimpleContent.Count != 0)
+                if (_isApplyingSelection)
                 {
-                    Global.thisdevice = option;
-                    _ = ConnectCore();
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(option) && SimpleContent != null && SimpleContent.Contains(option))
+                {
+                    _ = ApplySelectionAndRefreshAsync(option);
+                }
+                else
+                {
+                    // selection cleared or invalid -> back to startup style
+                    Global.thisdevice = null;
+                    ResetDeviceInfo();
                 }
             });
 
@@ -137,34 +149,22 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     public async Task CheckDeviceList()
     {
-        // periodically scan devices using DeviceManager; event handlers will update UI as needed
+        // periodic background scan only; UI updates are handled by device events
         while (true)
         {
             if (Global.DeviceManager != null)
             {
                 await Global.DeviceManager.ScanAsync();
-                // refresh displayed list if there is any change (do not animate busy when automatic)
-                _ = await GetDevicesList(_hasWarnedNoDevice == false); // show warning first time only
             }
+
             await Task.Delay(1000);
         }
-    }
-
-    public async Task<bool> ListChecker()
-    {
-        // retained for compatibility but underlying scan is now driven by DeviceManager
-        if (Global.DeviceManager != null)
-        {
-            await Global.DeviceManager.ScanAsync();
-            return true;
-        }
-        return false;
     }
 
     private void DeviceManager_DeviceAdded(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
         // if new device appears refresh list, keep selection (do not warn)
-        _ = GetDevicesList(false);
+        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: true);
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
@@ -173,14 +173,24 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             .Queue();
     }
 
-    private void DeviceManager_DeviceRemoved(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    private async void DeviceManager_DeviceRemoved(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        // refresh list; if removed device was selected, pick another or clear (do not warn)
-        _ = GetDevicesList(false);
-        if (Global.thisdevice == e.Device.Id)
+        // compute next selectable item before refreshing list
+        var oldList = SimpleContent?.ToList() ?? new List<string>();
+        var removedIndex = oldList.IndexOf(e.Device.Id);
+        var removedWasSelected = SelectedSimpleContent == e.Device.Id;
+        string nextSelectable = null;
+
+        if (removedWasSelected && oldList.Count > 1)
         {
-            Global.thisdevice = SimpleContent?.FirstOrDefault();
+            oldList.Remove(e.Device.Id);
+            var targetIndex = removedIndex >= 0 ? Math.Min(removedIndex, oldList.Count - 1) : 0;
+            nextSelectable = oldList[targetIndex];
         }
+
+        // refresh list silently during automatic scans
+        _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: false, rescan: false, refreshDetails: true);
+
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceDisconnected"), e.Device.Id))
@@ -189,38 +199,126 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             .Queue();
     }
 
-    private bool _hasWarnedNoDevice = false;
+    private void ResetDeviceInfo()
+    {
+        Status = "--";
+        BLStatus = "--";
+        VABStatus = "--";
+        CodeName = "--";
+        VNDKVersion = "--";
+        CPUCode = "--";
+        PowerOnTime = "--";
+        DeviceBrand = "--";
+        DeviceModel = "--";
+        SystemSDK = "--";
+        CPUABI = "--";
+        DisplayHW = "--";
+        Density = "--";
+        BoardID = "--";
+        Platform = "--";
+        Compile = "--";
+        Kernel = "--";
+        DiskType = "--";
+        BatteryLevel = "0";
+        BatteryInfo = "--";
+        UseMem = "--";
+        DiskInfo = "--";
+        ProgressDisk = "0";
+        MemLevel = "0";
 
-    public async Task<bool> GetDevicesList(bool showWarning = false)
+        // keep left summary panel in sync with Home page reset state
+        if (GlobalData.MainViewModelInstance != null)
+        {
+            GlobalData.MainViewModelInstance.Status = "--";
+            GlobalData.MainViewModelInstance.BLStatus = "--";
+            GlobalData.MainViewModelInstance.VABStatus = "--";
+            GlobalData.MainViewModelInstance.CodeName = "--";
+        }
+    }
+
+    private async Task ApplySelectionAndRefreshAsync(string deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId) || SimpleContent == null || !SimpleContent.Contains(deviceId))
+        {
+            return;
+        }
+
+        Global.thisdevice = deviceId;
+        await ConnectCore();
+    }
+
+    public async Task<bool> GetDevicesList(bool showWarning = false, string preferredSelection = null, bool resetWhenEmpty = true, bool rescan = true, bool refreshDetails = true)
     {
         if (Global.DeviceManager == null)
         {
-            if (showWarning && !_hasWarnedNoDevice)
+            if (showWarning)
             {
                 Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
-                _hasWarnedNoDevice = true;
             }
+
+            Global.deviceslist = new AvaloniaList<string>();
+            SimpleContent = Global.deviceslist;
+            Global.thisdevice = null;
+            SelectedSimpleContent = null;
+            ResetDeviceInfo();
             return false;
         }
-        await Global.DeviceManager.ScanAsync();
+
+        if (rescan)
+        {
+            await Global.DeviceManager.ScanAsync();
+        }
+
         var devices = Global.DeviceManager.Devices.Select(d => d.Id).ToArray();
         if (devices.Length != 0)
         {
             Global.deviceslist = new AvaloniaList<string>(devices);
             SimpleContent = Global.deviceslist;
-            if (SelectedSimpleContent == null || !string.Join("", SimpleContent).Contains(SelectedSimpleContent))
+
+            var selection = preferredSelection;
+            if (string.IsNullOrWhiteSpace(selection) || !Global.deviceslist.Contains(selection))
             {
-                SelectedSimpleContent = Global.thisdevice != null && Global.deviceslist.Contains(Global.thisdevice) ? Global.thisdevice : SimpleContent.First();
+                selection = Global.thisdevice;
             }
+
+            if (string.IsNullOrWhiteSpace(selection) || !Global.deviceslist.Contains(selection))
+            {
+                selection = Global.deviceslist.First();
+            }
+
+            if (SelectedSimpleContent != selection)
+            {
+                _isApplyingSelection = true;
+                SelectedSimpleContent = selection;
+                _isApplyingSelection = false;
+            }
+
+            if (refreshDetails)
+            {
+                await ApplySelectionAndRefreshAsync(selection);
+            }
+
             return true;
         }
         else
         {
-            if (showWarning && !_hasWarnedNoDevice)
+            if (resetWhenEmpty)
+            {
+                // no devices remain: clear dropdown + home info to startup state
+                Global.deviceslist = new AvaloniaList<string>();
+                SimpleContent = Global.deviceslist;
+                Global.thisdevice = null;
+                _isApplyingSelection = true;
+                SelectedSimpleContent = null;
+                _isApplyingSelection = false;
+                ResetDeviceInfo();
+            }
+
+            if (showWarning)
             {
                 Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_CheckDevice")).Dismiss().ByClickingBackground().TryShow();
-                _hasWarnedNoDevice = true;
             }
+
             return false;
         }
     }
@@ -270,7 +368,24 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         // capture old sets
         var oldSets = _previousDeviceSets;
 
-        if (await GetDevicesList(true) && Global.thisdevice != null && string.Join("", Global.deviceslist).Contains(Global.thisdevice))
+        if (Global.DeviceManager != null)
+        {
+            await Global.DeviceManager.ScanAsync();
+        }
+
+        var hasDevices = await GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: true);
+
+        if (!hasDevices && Global.DeviceManager != null)
+        {
+            // confirm once more to avoid clearing UI on transient scan hiccups
+            await Task.Delay(150);
+            await Global.DeviceManager.ScanAsync();
+            hasDevices = await GetDevicesList(showWarning: true, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: false);
+        }
+
+        if (hasDevices
+            && !string.IsNullOrWhiteSpace(Global.thisdevice)
+            && Global.deviceslist.Contains(Global.thisdevice))
         {
             if (!oldSets.Any())
             {
@@ -312,10 +427,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             // preserve new sets for next refresh
             _previousDeviceSets = newSets;
 
-            if (!oldSets.SequenceEqual(newSets))
-            {
-                await ConnectCore();
-            }
+            // details are already refreshed by GetDevicesList(refreshDetails: true)
         }
 
         CommonDevicesList = false;
@@ -560,7 +672,23 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_ScanCompleted(object sender, EventArgs e)
     {
-        // scan completed event is intentionally silent; manual refresh triggers notifications
+        if (Global.DeviceManager == null)
+        {
+            return;
+        }
+
+        if (Global.DeviceManager.Devices.Any())
+        {
+            _consecutiveEmptyScans = 0;
+            return;
+        }
+
+        // Guard against transient probe failures: clear only after consecutive empty scans.
+        _consecutiveEmptyScans++;
+        if (_consecutiveEmptyScans >= 2)
+        {
+            _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: false);
+        }
     }
 
     public void Dispose()
