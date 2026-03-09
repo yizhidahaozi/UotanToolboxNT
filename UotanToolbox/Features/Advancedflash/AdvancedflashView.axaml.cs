@@ -1,14 +1,8 @@
 ﻿using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
-using System;
-using System.Threading.Tasks;
+using System.IO;
 using UotanToolbox.Common;
 
 namespace UotanToolbox.Features.Advancedflash;
@@ -26,5 +20,21 @@ public partial class AdvancedflashView : UserControl
     {
         InitializeComponent();
         ExportScr.ItemsSource = ScriptList;
+    }
+
+    private async void OpenImageFile(object sender, RoutedEventArgs args)
+    {
+        Button button = (Button)sender;
+        FalshPartModel falshPartModel = (FalshPartModel)button.DataContext;
+        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        System.Collections.Generic.IReadOnlyList<IStorageFile> file = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open Image File",
+            AllowMultiple = false
+        });
+        if (file.Count >= 1)
+        {
+            falshPartModel.FileName = Path.GetFileName(StringHelper.FilePath(file[0].Path.ToString()));
+        }
     }
 }

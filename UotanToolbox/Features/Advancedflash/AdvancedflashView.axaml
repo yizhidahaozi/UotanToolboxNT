@@ -18,10 +18,10 @@
 			<suki:GlassCard Classes="Card" Margin="10 15 10 10" Height="80" Width="960">
 				<StackPanel Orientation="Horizontal" Spacing="0">
 					<TextBlock Margin="10 0 0 0"
-						   VerticalAlignment="Center"
-						   FontSize="15"
-						   Width="100"
-						   Text="{x:Static assets:Resources.Advancedflash_FileOrFolder}" />
+							   VerticalAlignment="Center"
+							   FontSize="15"
+							   Width="100"
+							   Text="{x:Static assets:Resources.Advancedflash_FileOrFolder}" />
 					<TextBox Width="600" Name="File"
 							 Text="" Watermark="{x:Static assets:Resources.Advancedflash_SelectFile}"
 							 theme:TextBoxExtensions.AddDeleteButton="True"/>
@@ -48,21 +48,38 @@
 										 Height="30"
 										 FontSize="15"
 										 Watermark="{x:Static assets:Resources.Modifypartition_SearchPart}"/>
-								<TextBlock Margin="150 14 0 0" Text="{x:Static assets:Resources.Advancedflash_Selected}"/>
+								<TextBlock Margin="135 14 0 0" Text="{x:Static assets:Resources.Advancedflash_Selected}"/>
 								<TextBlock Name="Total"
 										   VerticalAlignment="Center"
-						   				   FontSize="15"
-						   				   Width="90"></TextBlock>
+										   FontSize="15"
+										   Width="90"></TextBlock>
 							</StackPanel>
 							<suki:BusyArea  Name="BusyFlash"
 											BusyText="">
 								<DataGrid Name="ImgList"
+										  ItemsSource="{Binding FalshPartModel}"
 										  Width="625"
 										  Height="565"
 										  FontSize="15"
-										  IsReadOnly="True"
-										  AutoGenerateColumns="True"
+										  AutoGenerateColumns="False"
 										  CanUserResizeColumns="True">
+									<DataGrid.Columns>
+										<DataGridCheckBoxColumn Binding="{Binding Select}" Header="{x:Static assets:Resources.Advancedflash_Select}"/>
+										<DataGridTextColumn Binding="{Binding Command}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Command}"/>
+										<DataGridTextColumn Binding="{Binding Size}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Size}"/>
+										<DataGridTextColumn Binding="{Binding Name}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Tag}"/>
+										<DataGridTemplateColumn IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_File}">
+											<DataGridTemplateColumn.CellTemplate>
+												<DataTemplate>
+													<Button Name="ImageName"
+															Theme="{StaticResource ToolboxButtonFile}"
+															Content="{Binding FileName}"
+															Click="OpenImageFile"
+															ToolTip.Tip="{x:Static assets:Resources.Advancedflash_ChangeImg}"/>
+												</DataTemplate>
+											</DataGridTemplateColumn.CellTemplate>
+										</DataGridTemplateColumn>
+									</DataGrid.Columns>
 								</DataGrid>
 							</suki:BusyArea>
 						</StackPanel>

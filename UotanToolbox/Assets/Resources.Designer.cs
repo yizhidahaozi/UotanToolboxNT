@@ -133,6 +133,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Change image 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ChangeImg {
+            get {
+                return ResourceManager.GetString("Advancedflash_ChangeImg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 File 的本地化字符串。
         /// </summary>
         public static string Advancedflash_ChooseFile {
@@ -147,6 +156,15 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_ChooseFolder {
             get {
                 return ResourceManager.GetString("Advancedflash_ChooseFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Command 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Command {
+            get {
+                return ResourceManager.GetString("Advancedflash_Command", resourceCulture);
             }
         }
         
@@ -187,6 +205,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 File 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_File {
+            get {
+                return ResourceManager.GetString("Advancedflash_File", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 File/Folder: 的本地化字符串。
         /// </summary>
         public static string Advancedflash_FileOrFolder {
@@ -210,6 +237,15 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_Name {
             get {
                 return ResourceManager.GetString("Advancedflash_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Select 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Select {
+            get {
+                return ResourceManager.GetString("Advancedflash_Select", resourceCulture);
             }
         }
         
@@ -246,6 +282,24 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_SetOther {
             get {
                 return ResourceManager.GetString("Advancedflash_SetOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Size 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Size {
+            get {
+                return ResourceManager.GetString("Advancedflash_Size", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Tag 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Tag {
+            get {
+                return ResourceManager.GetString("Advancedflash_Tag", resourceCulture);
             }
         }
         
