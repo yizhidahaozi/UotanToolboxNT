@@ -661,6 +661,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceUpdated(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
+        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: true);
+
         // update notification when a device's properties change
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
