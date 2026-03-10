@@ -16,6 +16,9 @@ namespace UotanToolbox.Common.Devices
     {
         private readonly IList<IDeviceTransport> _transports;
         private readonly Dictionary<string, DeviceInfo> _cache = new();
+        private readonly Dictionary<string, int> _missingScanCounts = new();
+        private readonly SemaphoreSlim _scanLock = new(1, 1);
+        private readonly object _cacheLock = new();
         private bool _disposed;
 
         public DeviceManager(IEnumerable<IDeviceTransport> transports)
@@ -23,55 +26,109 @@ namespace UotanToolbox.Common.Devices
             _transports = transports.ToList();
         }
 
-        public IReadOnlyCollection<DeviceInfo> Devices => _cache.Values;
+        public IReadOnlyCollection<DeviceInfo> Devices
+        {
+            get
+            {
+                lock (_cacheLock)
+                {
+                    return _cache.Values.ToList();
+                }
+            }
+        }
 
-        public event EventHandler<DeviceEventArgs> DeviceAdded;
-        public event EventHandler<DeviceEventArgs> DeviceRemoved;
+        public event EventHandler<DeviceEventArgs>? DeviceAdded;
+        public event EventHandler<DeviceEventArgs>? DeviceRemoved;
         /// <summary>
         /// Raised when a previously-seen device is discovered again with changed details.
         /// </summary>
-        public event EventHandler<DeviceEventArgs> DeviceUpdated;
+        public event EventHandler<DeviceEventArgs>? DeviceUpdated;
         /// <summary>
         /// Raised after a scan operation completes (added and removed events have already fired).
         /// </summary>
-        public event EventHandler ScanCompleted;
+        public event EventHandler? ScanCompleted;
 
         public async Task ScanAsync(CancellationToken cancel = default)
         {
-            var seen = new HashSet<string>();
-            foreach (var tr in _transports)
+            await _scanLock.WaitAsync(cancel);
+            try
             {
-                var list = await tr.ProbeAsync(cancel);
-                foreach (var d in list)
+                var seen = new HashSet<string>();
+                foreach (var tr in _transports)
                 {
-                    seen.Add(d.Id);
-                    if (!_cache.ContainsKey(d.Id))
+                    var list = await tr.ProbeAsync(cancel);
+                    foreach (var d in list)
                     {
-                        _cache[d.Id] = d;
-                        DeviceAdded?.Invoke(this, new DeviceEventArgs(d));
-                    }
-                    else
-                    {
-                        // existing device, check if any details changed
-                        var old = _cache[d.Id];
-                        if (!old.Equals(d))
+                        seen.Add(d.Id);
+                        lock (_cacheLock)
                         {
-                            _cache[d.Id] = d;
-                            DeviceUpdated?.Invoke(this, new DeviceEventArgs(d));
+                            _missingScanCounts.Remove(d.Id);
+
+                            if (!_cache.ContainsKey(d.Id))
+                            {
+                                _cache[d.Id] = d;
+                                DeviceAdded?.Invoke(this, new DeviceEventArgs(d));
+                            }
+                            else
+                            {
+                                // existing device, check if any details changed
+                                var old = _cache[d.Id];
+                                if (!old.Equals(d))
+                                {
+                                    _cache[d.Id] = d;
+                                    DeviceUpdated?.Invoke(this, new DeviceEventArgs(d));
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            var removed = _cache.Keys.Except(seen).ToList();
-            foreach (var id in removed)
-            {
-                var di = _cache[id];
-                _cache.Remove(id);
-                DeviceRemoved?.Invoke(this, new DeviceEventArgs(di));
+                // Debounce transient probe misses: remove only after 2 consecutive misses.
+                List<string> candidates;
+                lock (_cacheLock)
+                {
+                    candidates = _cache.Keys.Except(seen).ToList();
+                }
+                foreach (var id in candidates)
+                {
+                    int missCount;
+                    lock (_cacheLock)
+                    {
+                        if (!_missingScanCounts.TryGetValue(id, out missCount))
+                        {
+                            missCount = 0;
+                        }
+
+                        missCount++;
+                        _missingScanCounts[id] = missCount;
+                    }
+                    if (missCount < 2)
+                    {
+                        continue;
+                    }
+
+                    DeviceInfo? di;
+                    lock (_cacheLock)
+                    {
+                        if (!_cache.TryGetValue(id, out di))
+                        {
+                            _missingScanCounts.Remove(id);
+                            continue;
+                        }
+
+                        _cache.Remove(id);
+                        _missingScanCounts.Remove(id);
+                    }
+                    DeviceRemoved?.Invoke(this, new DeviceEventArgs(di));
+                }
+
+                // notify that the scan finished
+                ScanCompleted?.Invoke(this, EventArgs.Empty);
             }
-            // notify that the scan finished
-            ScanCompleted?.Invoke(this, EventArgs.Empty);
+            finally
+            {
+                _scanLock.Release();
+            }
         }
 
         public async Task<string> ExecuteAsync(DeviceInfo device, string cmd) =>
