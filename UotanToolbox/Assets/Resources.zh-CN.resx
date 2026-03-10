@@ -1777,4 +1777,7 @@ ADB下填写序号，一次一个！</value>
   <data name="Advancedflash_ReadInfo" xml:space="preserve">
     <value>读取信息</value>
   </data>
+  <data name="Common_Executing" xml:space="preserve">
+    <value>执行中...</value>
+  </data>
 </root>

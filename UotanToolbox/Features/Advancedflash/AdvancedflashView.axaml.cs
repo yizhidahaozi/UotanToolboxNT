@@ -319,7 +319,6 @@ public partial class AdvancedflashView : UserControl
                         }
                         break;
                 }
-                TrySyncFileNamesFromUnpackFolder(path);
                 BusyFlash.IsBusy = false;
                 return;
             }
@@ -910,10 +909,10 @@ public partial class AdvancedflashView : UserControl
     private async void ReadInfo(object sender, RoutedEventArgs args)
     {
         MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-        if (sukiViewModel.Status == "Fastboot" || sukiViewModel.Status == "Fastbootd")
+        if (sukiViewModel.Status == "Fastboot")
         {
             BusyFlash.IsBusy = true;
-            ExtractSelect.IsEnabled = false;
+            Read.IsEnabled = false;
             Global.checkdevice = false;
             var vm = GetViewModel();
             vm.FalshPartModel.Clear();
@@ -943,7 +942,81 @@ public partial class AdvancedflashView : UserControl
                 });
             }
             BusyFlash.IsBusy = false;
-            ExtractSelect.IsEnabled = true;
+            Read.IsEnabled = true;
+            Global.checkdevice = true;
+        }
+        else if (sukiViewModel.Status == "Fastbootd")
+        {
+            BusyFlash.IsBusy = true;
+            Read.IsEnabled = false;
+            Global.checkdevice = false;
+            var vm = GetViewModel();
+            vm.FalshPartModel.Clear();
+            string allinfo = await FeaturesHelper.FastbootCmd(Global.thisdevice, "getvar all");
+            string[] parts = new string[1000];
+            string[] allinfos = allinfo.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            if ((bool)ShowAllPart.IsChecked)
+            {
+                for (int i = 0; i < allinfos.Length; i++)
+                {
+                    if (allinfos[i].Contains("partition-size"))
+                    {
+                        parts[i] = allinfos[i];
+                    }
+                }
+                parts = [.. parts.Where(s => !string.IsNullOrEmpty(s))];
+                PartModel[] part = new PartModel[parts.Length];
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    string[] partinfos = parts[i].Split([':', ' '], StringSplitOptions.RemoveEmptyEntries);
+                    string size = StringHelper.byte2AUnit((ulong)Convert.ToInt64(partinfos[3].Replace("0x", ""), 16));
+                    vm.FalshPartModel.Add(new FalshPartModel
+                    {
+                        Select = false,
+                        Name = partinfos[2],
+                        Size = size,
+                        Command = "",
+                        FileName = "选择文件"
+                    });
+                }
+            }
+            else
+            {
+                for (int i = 0; i < allinfos.Length; i++)
+                {
+                    if (allinfos[i].Contains("is-logical") && allinfos[i].Contains("yes"))
+                    {
+                        string[] vpartinfos = allinfos[i].Split([':', ' '], StringSplitOptions.RemoveEmptyEntries);
+                        parts[i] = vpartinfos[2];
+                    }
+                }
+                parts = [.. parts.Where(s => !string.IsNullOrEmpty(s))];
+                PartModel[] vpart = new PartModel[parts.Length];
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    for (int j = 0; j < allinfos.Length; j++)
+                    {
+                        if (allinfos[j].Contains("partition-size"))
+                        {
+                            string[] partinfos = allinfos[j].Split([':', ' '], StringSplitOptions.RemoveEmptyEntries);
+                            if (partinfos[2] == parts[i])
+                            {
+                                string size = StringHelper.byte2AUnit((ulong)Convert.ToInt64(partinfos[3].Replace("0x", ""), 16));
+                                vm.FalshPartModel.Add(new FalshPartModel
+                                {
+                                    Select = false,
+                                    Name = partinfos[2],
+                                    Size = size,
+                                    Command = "",
+                                    FileName = "选择文件"
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            BusyFlash.IsBusy = false;
+            Read.IsEnabled = true;
             Global.checkdevice = true;
         }
         else
@@ -952,44 +1025,49 @@ public partial class AdvancedflashView : UserControl
         }
     }
 
+    private async void FlashSelect(object sender, RoutedEventArgs args)
+    {
+
+    }
+
     private async void EraseSelect(object sender, RoutedEventArgs args)
     {
-        foreach (var item in GetViewModel().FalshPartModel)
+        MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
+        if (sukiViewModel.Status == "Fastboot" || sukiViewModel.Status == "Fastbootd")
         {
-            if (item.Select == true)
+            BusyFlash.IsBusy = true;
+            Erase.IsEnabled = false;
+            foreach (var item in GetViewModel().FalshPartModel)
             {
-                await Fastboot($"fastboot erase {item.Name}");
+                if (item.Select == true)
+                {
+                    await Fastboot($"-s {Global.thisdevice} erase {item.Name}");
+                }
             }
+            BusyFlash.IsBusy = false;
+            Erase.IsEnabled = true;
+        }
+        else
+        {
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_EnterFastboot")).Dismiss().ByClickingBackground().TryShow();
         }
     }
 
     private async void SetOther(object sender, RoutedEventArgs args)
     {
-        if (await GetDevicesInfo.SetDevicesInfoLittle())
+        MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
+        if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
-            {
-                AdvancedflashLog.Text = "";
-                string shell = string.Format($"-s {Global.thisdevice} set_active other");
-                await Fastboot(shell);
-            }
-            else
-            {
-                Global.MainDialogManager.CreateDialog()
-                                            .WithTitle(GetTranslation("Common_Error"))
-                                            .OfType(NotificationType.Error)
-                                            .WithContent(GetTranslation("Common_EnterFastboot"))
-                                            .Dismiss().ByClickingBackground()
-                                            .TryShow();
-            }
+            AdvancedflashLog.Text = "";
+            string shell = string.Format($"-s {Global.thisdevice} set_active other");
+            await Fastboot(shell);
         }
         else
         {
             Global.MainDialogManager.CreateDialog()
                                         .WithTitle(GetTranslation("Common_Error"))
                                         .OfType(NotificationType.Error)
-                                        .WithContent(GetTranslation("Common_NotConnected"))
+                                        .WithContent(GetTranslation("Common_EnterFastboot"))
                                         .Dismiss().ByClickingBackground()
                                         .TryShow();
         }
@@ -1000,6 +1078,11 @@ public partial class AdvancedflashView : UserControl
         Global.MainDialogManager.CreateDialog()
                             .WithViewModel(_ => new SetMagiskDialogViewModel())
                             .TryShow();
+    }
+
+    private async void ToWiredPkg(object sender, RoutedEventArgs args)
+    {
+
     }
 
     private async void Export(object sender, RoutedEventArgs args)

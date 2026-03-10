@@ -1591,6 +1591,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Executing 的本地化字符串。
+        /// </summary>
+        public static string Common_Executing {
+            get {
+                return ResourceManager.GetString("Common_Executing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Execution completed! 的本地化字符串。
         /// </summary>
         public static string Common_Execution {
