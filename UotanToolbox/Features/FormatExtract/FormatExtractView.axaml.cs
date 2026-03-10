@@ -120,7 +120,9 @@ public partial class FormatExtractView : UserControl
 
     private async void OpenQcnFile(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+            return;
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open QCN File",
@@ -128,7 +130,7 @@ public partial class FormatExtractView : UserControl
         });
         if (files.Count >= 1)
         {
-            QcnFile.Text = files[0].TryGetLocalPath();
+            QcnFile.Text = files[0].TryGetLocalPath() ?? string.Empty;
         }
     }
 
@@ -228,7 +230,9 @@ public partial class FormatExtractView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
+                                            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+                                            if (topLevel == null)
+                                                return;
                                             System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
                                             {
                                                 Title = "Select Backup Folder",
@@ -236,9 +240,10 @@ public partial class FormatExtractView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+                                                string? localPath = files[0].TryGetLocalPath();
+                                                if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
                                                 {
-                                                    Global.backup_path = files[0].TryGetLocalPath();
+                                                    Global.backup_path = localPath;
                                                 }
                                                 else
                                                 {
@@ -254,9 +259,9 @@ public partial class FormatExtractView : UserControl
                                         .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
                                         .TryShow();
         }
-        if (Global.backup_path != null)
+        if (!string.IsNullOrEmpty(Global.backup_path))
         {
-            FileHelper.OpenFolder(Path.Combine(Global.backup_path));
+            FileHelper.OpenFolder(Path.Combine(Global.backup_path ?? string.Empty));
         }
     }
 
@@ -350,7 +355,9 @@ public partial class FormatExtractView : UserControl
 
     private async void OpenEmptyFile(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+            return;
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open SuperEmpty File",
@@ -358,7 +365,7 @@ public partial class FormatExtractView : UserControl
         });
         if (files.Count >= 1)
         {
-            SuperEmptyFile.Text = files[0].TryGetLocalPath();
+            SuperEmptyFile.Text = files[0].TryGetLocalPath() ?? string.Empty;
         }
     }
 
@@ -573,7 +580,9 @@ public partial class FormatExtractView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
+                                            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+                                            if (topLevel == null)
+                                                return;
                                             System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
                                             {
                                                 Title = "Select Backup Folder",
@@ -581,9 +590,10 @@ public partial class FormatExtractView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+                                                string? localPath = files[0].TryGetLocalPath();
+                                                if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
                                                 {
-                                                    Global.backup_path = files[0].TryGetLocalPath();
+                                                    Global.backup_path = localPath;
                                                 }
                                                 else
                                                 {
@@ -756,7 +766,9 @@ public partial class FormatExtractView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
+                                            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+                                            if (topLevel == null)
+                                                return;
                                             System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
                                             {
                                                 Title = "Select Backup Folder",
@@ -764,9 +776,10 @@ public partial class FormatExtractView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+                                                string? localPath = files[0].TryGetLocalPath();
+                                                if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
                                                 {
-                                                    Global.backup_path = files[0].TryGetLocalPath();
+                                                    Global.backup_path = localPath;
                                                 }
                                                 else
                                                 {
@@ -946,7 +959,9 @@ public partial class FormatExtractView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
+                                            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+                                            if (topLevel == null)
+                                                return;
                                             System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
                                             {
                                                 Title = "Select Backup Folder",
@@ -954,9 +969,10 @@ public partial class FormatExtractView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+                                                string? localPath = files[0].TryGetLocalPath();
+                                                if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
                                                 {
-                                                    Global.backup_path = files[0].TryGetLocalPath();
+                                                    Global.backup_path = localPath;
                                                 }
                                                 else
                                                 {
@@ -980,9 +996,9 @@ public partial class FormatExtractView : UserControl
                 BusyExtract.IsBusy = true;
                 Extract.IsEnabled = false;
                 output = "";
-                string backup_images_folder = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
+                string backup_images_folder = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
                 Directory.CreateDirectory(backup_images_folder);
-                string backup_txt_path = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
+                string backup_txt_path = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
                 string partlist = "";
                 FormatExtractLog.Text = GetTranslation("FormatExtract_Extracting") + "\n";
                 await FeaturesHelper.GetPartTable(Global.thisdevice);
@@ -1138,9 +1154,9 @@ public partial class FormatExtractView : UserControl
                                                 BusyExtract.IsBusy = true;
                                                 Extract.IsEnabled = false;
                                                 output = "";
-                                                string backup_images_folder = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
+                                                string backup_images_folder = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
                                                 Directory.CreateDirectory(backup_images_folder);
-                                                string backup_txt_path = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
+                                                string backup_txt_path = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
                                                 string partlist = "";
                                                 FormatExtractLog.Text = GetTranslation("FormatExtract_Extracting") + "\n";
                                                 await FeaturesHelper.GetPartTableSystemDebug(Global.thisdevice);
@@ -1290,9 +1306,9 @@ public partial class FormatExtractView : UserControl
                                                 BusyExtract.IsBusy = true;
                                                 Extract.IsEnabled = false;
                                                 output = "";
-                                                string backup_images_folder = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
+                                                string backup_images_folder = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "images");
                                                 Directory.CreateDirectory(backup_images_folder);
-                                                string backup_txt_path = Path.Combine(Global.backup_path, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
+                                                string backup_txt_path = Path.Combine(Global.backup_path ?? string.Empty, $"{sukiViewModel.CodeName}_UotanToolbox_FullBackup_{sukiViewModel.VABStatus}_{DateTime.Now:yyyyMMddHHmmss}", "flashall_fastboot.txt");
                                                 string partlist = "";
                                                 FormatExtractLog.Text = GetTranslation("FormatExtract_Extracting") + "\n";
                                                 await FeaturesHelper.GetPartTableSystem(Global.thisdevice);
@@ -1461,7 +1477,9 @@ public partial class FormatExtractView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
                                         {
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
+                                            TopLevel? topLevel = TopLevel.GetTopLevel(this);
+                                            if (topLevel == null)
+                                                return;
                                             System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
                                             {
                                                 Title = "Select Backup Folder",
@@ -1469,9 +1487,10 @@ public partial class FormatExtractView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+                                                string? localPath = files[0].TryGetLocalPath();
+                                                if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
                                                 {
-                                                    Global.backup_path = files[0].TryGetLocalPath();
+                                                    Global.backup_path = localPath;
                                                 }
                                                 else
                                                 {
@@ -1487,9 +1506,8 @@ public partial class FormatExtractView : UserControl
                                         .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
                                         .TryShow();
         }
-        if (Global.backup_path != null)
+        if (!string.IsNullOrEmpty(Global.backup_path))
         {
-            FileHelper.OpenFolder(Path.Combine(Global.backup_path));
+            FileHelper.OpenFolder(Path.Combine(Global.backup_path ?? string.Empty));
         }
-    }
-}
+    }}
