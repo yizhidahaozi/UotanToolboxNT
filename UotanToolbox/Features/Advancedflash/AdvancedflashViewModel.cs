@@ -52,4 +52,7 @@ public partial class FalshPartModel : ObservableObject
 
     [ObservableProperty]
     private string fileName;
+
+    [ObservableProperty]
+    private string fullFilePath;
 }

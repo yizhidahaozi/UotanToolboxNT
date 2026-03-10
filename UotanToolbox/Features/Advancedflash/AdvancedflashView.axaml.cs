@@ -4,6 +4,7 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using FirmwareKit.Lp;
 using FirmwareKit.Sparse.Core;
 using FirmwareKit.Sparse.Models;
@@ -14,11 +15,14 @@ using SukiUI.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
 using UotanToolbox.Common.ROMHelper;
+using UotanToolbox.Features.Wiredflash;
 using UotanToolbox.Utilities;
 using static QRCoder.PayloadGenerator;
 
@@ -40,7 +44,7 @@ public partial class AdvancedflashView : UserControl
         return FeaturesHelper.GetTranslation(key);
     }
 
-    public AvaloniaList<string> ScriptList = [".bat", ".sh", ".xml", ".txt"];
+    public AvaloniaList<string> ScriptList = [".bat", ".sh", ".txt"];
     private LpMetadata? _metadata;
     private ParsedFileType _parsedFileType = ParsedFileType.Unknown;
 
@@ -66,6 +70,43 @@ public partial class AdvancedflashView : UserControl
                     }
                 }
             });
+    }
+
+    public async Task Fastboot(string fbshell)//Fastboot实时输出
+    {
+        await Task.Run(() =>
+        {
+            string cmd = Global.FastbootPath;
+            ProcessStartInfo fastboot = new ProcessStartInfo(cmd, fbshell)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using Process fb = new Process();
+            fb.StartInfo = fastboot;
+            _ = fb.Start();
+            fb.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
+            fb.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
+            fb.BeginOutputReadLine();
+            fb.BeginErrorReadLine();
+            fb.WaitForExit();
+            fb.Close();
+        });
+    }
+
+    private async void OutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
+    {
+        if (!string.IsNullOrEmpty(outLine.Data))
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                StringBuilder sb = new StringBuilder(AdvancedflashLog.Text);
+                AdvancedflashLog.Text = sb.AppendLine(outLine.Data).ToString();
+                AdvancedflashLog.CaretIndex = AdvancedflashLog.Text.Length;
+            });
+        }
     }
 
     private AdvancedflashViewModel GetViewModel()
@@ -99,7 +140,179 @@ public partial class AdvancedflashView : UserControl
                 _parsedFileType = ParsedFileType.Script;
                 AdvancedflashLog.Text += $"\nSkip script type: {Path.GetFileName(path)}";
                 //检测后的脚本逻辑写这里
+                string fileExtension = Path.GetExtension(path);
+                switch (fileExtension)
+                {
+                    case ".bat":
+                    case ".sh":
+                        try
+                        {
+                            var vm = GetViewModel();
+                            vm.FalshPartModel.Clear();
+                            await Task.Delay(100);
 
+                            string[] lines = await System.IO.File.ReadAllLinesAsync(path);
+                            string scriptDir = Path.GetDirectoryName(path) ?? string.Empty;
+
+                            // 匹配 fastboot [可选的%*或$*] 命令 [可选的分区名/参数] [可选的路径]
+                            System.Text.RegularExpressions.Regex regex = new System.Text.RegularExpressions.Regex(@"fastboot\s+(?:(?:%\*|\$\*)\s+)?(flash|erase|set_active|reboot)(?:\s+([^\s]+))?(?:\s+(.*?))?(?=\s*(?:\||&|;|>|$))", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                            foreach (string line in lines)
+                            {
+                                var match = regex.Match(line);
+                                if (match.Success)
+                                {
+                                    string command = match.Groups[1].Value.ToLower(); // flash, erase, set_active, reboot
+                                    string partitionOrArg = match.Groups[2].Value;    // partition name e.g. boot_ab, or 'a' for set_active
+                                    string relativeFilePath = match.Groups[3].Value;  // file path e.g. %~dp0images/boot.img
+
+                                    string fullPath = "";
+                                    string fileName = "";
+                                    string sizeStr = "";
+                                    string partName = partitionOrArg;
+
+                                    if (command == "set_active")
+                                    {
+                                        partName = "set_active";
+                                        relativeFilePath = partitionOrArg; // 参数 'a' 或 'b' 实际在第2个捕获组
+                                    }
+                                    else if (command == "reboot")
+                                    {
+                                        partName = "reboot";
+                                        relativeFilePath = "";
+                                    }
+
+                                    if (!string.IsNullOrEmpty(relativeFilePath) && command != "set_active" && command != "reboot")
+                                    {
+                                        // 移除批处理和sh脚本中的特殊变量以及引号
+                                        string normalizedPath = relativeFilePath
+                                            .Replace("%~dp0", "")
+                                            .Replace("`dirname $0`", "")
+                                            .Replace("$(dirname $0)", "")
+                                            .Replace("\"", "")
+                                            .Trim();
+
+                                        // 处理.sh等脚本中的常规路径表示 (例如当前目录 ./)
+                                        if (normalizedPath.StartsWith("./") || normalizedPath.StartsWith(".\\"))
+                                        {
+                                            normalizedPath = normalizedPath.Substring(2);
+                                        }
+
+                                        // 移除开头的斜杠，防止 Path.Combine 识别为绝对路径导致拼接错误
+                                        normalizedPath = normalizedPath.TrimStart('/', '\\');
+
+                                        // 标准化路径分隔符并拼接完整路径
+                                        normalizedPath = normalizedPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                                        fullPath = Path.Combine(scriptDir, normalizedPath);
+                                        fileName = Path.GetFileName(fullPath);
+
+                                        // 如果文件存在，计算大小
+                                        if (System.IO.File.Exists(fullPath))
+                                        {
+                                            sizeStr = StringHelper.byte2AUnit((ulong)new System.IO.FileInfo(fullPath).Length);
+                                        }
+                                    }
+
+                                    vm.FalshPartModel.Add(new FalshPartModel
+                                    {
+                                        Select = false,
+                                        Name = partName.Replace(" ", ""),
+                                        Size = sizeStr,
+                                        Command = command,
+                                        FileName = fileName,
+                                        FullFilePath = fullPath
+                                    });
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AdvancedflashLog.Text += $"Error: {ex.Message}";
+                        }
+                        break;
+                    case ".txt":
+                        try
+                        {
+                            var vm = GetViewModel();
+                            vm.FalshPartModel.Clear();
+                            await Task.Delay(100);
+
+                            string[] lines = await System.IO.File.ReadAllLinesAsync(path);
+                            string scriptDir = Path.GetDirectoryName(path) ?? string.Empty;
+
+                            foreach (string line in lines)
+                            {
+                                string trimmedLine = line.Trim();
+                                if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+                                if (trimmedLine.StartsWith("codename:", StringComparison.OrdinalIgnoreCase)) continue;
+
+                                string[] parts = trimmedLine.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (parts.Length > 0)
+                                {
+                                    string partName = parts[0];
+                                    string command = "flash";
+                                    string relativeFilePath = "";
+                                    string fullPath = "";
+                                    string fileName = "";
+                                    string sizeStr = "";
+
+                                    if (parts.Length == 1)
+                                    {
+                                        // 默认镜像路径：同级目录下的 images/分区名.img
+                                        relativeFilePath = Path.Combine("images", $"{partName}.img");
+                                        fileName = $"{partName}.img"; // 即使文件不存在也显示文件名
+                                    }
+                                    else if (parts.Length >= 2)
+                                    {
+                                        string arg = parts[1];
+                                        if (arg.Equals("delete", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            command = "delete";
+                                        }
+                                        else if (arg.Equals("create", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            command = "create";
+                                        }
+                                        else
+                                        {
+                                            relativeFilePath = arg;
+                                        }
+                                    }
+
+                                    if (!string.IsNullOrEmpty(relativeFilePath))
+                                    {
+                                        // 移除开头的斜杠或反斜杠，防止 Path.Combine 识别为绝对路径导致拼接错误
+                                        string normalizedPath = relativeFilePath.TrimStart('/', '\\');
+                                        normalizedPath = normalizedPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+
+                                        fullPath = Path.Combine(scriptDir, normalizedPath);
+                                        fileName = Path.GetFileName(fullPath);
+
+                                        // 如果文件存在，计算大小
+                                        if (System.IO.File.Exists(fullPath))
+                                        {
+                                            sizeStr = StringHelper.byte2AUnit((ulong)new System.IO.FileInfo(fullPath).Length);
+                                        }
+                                    }
+
+                                    vm.FalshPartModel.Add(new FalshPartModel
+                                    {
+                                        Select = false,
+                                        Name = partName.Replace(" ", ""),
+                                        Size = sizeStr,
+                                        Command = command.Replace(" ", ""),
+                                        FileName = fileName,
+                                        FullFilePath = fullPath
+                                    });
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AdvancedflashLog.Text += $"Error: {ex.Message}";
+                        }
+                        break;
+                }
                 TrySyncFileNamesFromUnpackFolder(path);
                 BusyFlash.IsBusy = false;
                 return;
@@ -250,7 +463,47 @@ public partial class AdvancedflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            File.Text = files[0].TryGetLocalPath();
+            string folderPath = files[0].TryGetLocalPath();
+            File.Text = folderPath;
+
+            BusyFlash.IsBusy = true;
+            try
+            {
+                var vm = GetViewModel();
+                vm.FalshPartModel.Clear();
+                await Task.Delay(100);
+
+                if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
+                {
+                    var imgFiles = Directory.GetFiles(folderPath, "*.img", SearchOption.TopDirectoryOnly);
+
+                    foreach (var file in imgFiles)
+                    {
+                        var fileInfo = new FileInfo(file);
+                        string fileName = fileInfo.Name;
+                        string partName = Path.GetFileNameWithoutExtension(fileName).Replace(" ", "");
+                        string sizeStr = StringHelper.byte2AUnit((ulong)fileInfo.Length);
+
+                        vm.FalshPartModel.Add(new FalshPartModel
+                        {
+                            Select = false,
+                            Name = partName,
+                            Size = sizeStr,
+                            Command = "", // 留空
+                            FileName = fileName,
+                            FullFilePath = file
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AdvancedflashLog.Text += $"Error: {ex.Message}";
+            }
+            finally
+            {
+                BusyFlash.IsBusy = false;
+            }
         }
     }
 
@@ -633,5 +886,264 @@ public partial class AdvancedflashView : UserControl
         {
             falshPartModel.FileName = Path.GetFileName(StringHelper.FilePath(file[0].Path.ToString()));
         }
+    }
+
+    private async void ReadInfo(object sender, RoutedEventArgs args)
+    {
+        MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
+        if (sukiViewModel.Status == "Fastboot" || sukiViewModel.Status == "Fastbootd")
+        {
+            BusyFlash.IsBusy = true;
+            ExtractSelect.IsEnabled = false;
+            Global.checkdevice = false;
+            var vm = GetViewModel();
+            vm.FalshPartModel.Clear();
+            string allinfo = await FeaturesHelper.FastbootCmd(Global.thisdevice, "getvar all");
+            string[] parts = new string[1000];
+            string[] allinfos = allinfo.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < allinfos.Length; i++)
+            {
+                if (allinfos[i].Contains("partition-size"))
+                {
+                    parts[i] = allinfos[i];
+                }
+            }
+            parts = [.. parts.Where(s => !string.IsNullOrEmpty(s))];
+            PartModel[] part = new PartModel[parts.Length];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string[] partinfos = parts[i].Split([':', ' '], StringSplitOptions.RemoveEmptyEntries);
+                string size = StringHelper.byte2AUnit((ulong)Convert.ToInt64(partinfos[3].Replace("0x", ""), 16));
+                vm.FalshPartModel.Add(new FalshPartModel
+                {
+                    Select = false,
+                    Name = partinfos[2],
+                    Size = size,
+                    Command = "",
+                    FileName = "选择文件"
+                });
+            }
+            BusyFlash.IsBusy = false;
+            ExtractSelect.IsEnabled = true;
+            Global.checkdevice = true;
+        }
+        else
+        {
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_EnterFastboot")).Dismiss().ByClickingBackground().TryShow();
+        }
+    }
+
+    private async void EraseSelect(object sender, RoutedEventArgs args)
+    {
+        foreach (var item in GetViewModel().FalshPartModel)
+        {
+            if (item.Select == true)
+            {
+                await Fastboot($"fastboot erase {item.Name}");
+            }
+        }
+    }
+
+    private async void SetOther(object sender, RoutedEventArgs args)
+    {
+        if (await GetDevicesInfo.SetDevicesInfoLittle())
+        {
+            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
+            if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
+            {
+                AdvancedflashLog.Text = "";
+                string shell = string.Format($"-s {Global.thisdevice} set_active other");
+                await Fastboot(shell);
+            }
+            else
+            {
+                Global.MainDialogManager.CreateDialog()
+                                            .WithTitle(GetTranslation("Common_Error"))
+                                            .OfType(NotificationType.Error)
+                                            .WithContent(GetTranslation("Common_EnterFastboot"))
+                                            .Dismiss().ByClickingBackground()
+                                            .TryShow();
+            }
+        }
+        else
+        {
+            Global.MainDialogManager.CreateDialog()
+                                        .WithTitle(GetTranslation("Common_Error"))
+                                        .OfType(NotificationType.Error)
+                                        .WithContent(GetTranslation("Common_NotConnected"))
+                                        .Dismiss().ByClickingBackground()
+                                        .TryShow();
+        }
+    }
+
+    private async void CheckRoot(object sender, RoutedEventArgs args)
+    {
+        Global.MainDialogManager.CreateDialog()
+                            .WithViewModel(_ => new SetMagiskDialogViewModel())
+                            .TryShow();
+    }
+
+    private async void Export(object sender, RoutedEventArgs args)
+    {
+        Global.MainDialogManager.CreateDialog()
+                                .WithTitle(GetTranslation("Common_Error"))
+                                .OfType(NotificationType.Error)
+                                .WithContent("敬请期待")
+                                .Dismiss().ByClickingBackground()
+                                .TryShow();
+        //string selectedType = ExportScr.SelectedItem as string;
+        //if (!string.IsNullOrEmpty(selectedType))
+        //{
+        //    var vm = GetViewModel();
+        //    if (vm.FalshPartModel == null || vm.FalshPartModel.Count == 0)
+        //    {
+        //        AdvancedflashLog.Text += "\nError: No partition data to export.";
+        //        return;
+        //    }
+
+        //    TopLevel topLevel = TopLevel.GetTopLevel(this);
+        //    IStorageFolder? startLocation = null;
+        //    if (!string.IsNullOrEmpty(File.Text))
+        //    {
+        //        try
+        //        {
+        //            string path = File.Text;
+        //            if (System.IO.File.Exists(path))
+        //            {
+        //                path = Path.GetDirectoryName(path);
+        //            }
+        //            if (Directory.Exists(path))
+        //            {
+        //                startLocation = await topLevel.StorageProvider.TryGetFolderFromPathAsync(path);
+        //            }
+        //        }
+        //        catch
+        //        {
+        //            // Ignore errors if the path is invalid
+        //        }
+        //    }
+
+        //    var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        //    {
+        //        Title = "Save Script File",
+        //        DefaultExtension = selectedType.TrimStart('.'),
+        //        SuggestedFileName = "flash_all" + selectedType,
+        //        SuggestedStartLocation = startLocation,
+        //        FileTypeChoices = new[]
+        //        {
+        //            new FilePickerFileType($"{selectedType} File") { Patterns = new[] { $"*{selectedType}" } }
+        //        }
+        //    });
+
+        //    if (file != null)
+        //    {
+        //        try
+        //        {
+        //            using var stream = await file.OpenWriteAsync();
+        //            using var writer = new StreamWriter(stream);
+
+        //            if (selectedType == ".bat")
+        //            {
+        //                foreach (var part in vm.FalshPartModel)
+        //                {
+        //                    if (part.Command == "set_active")
+        //                    {
+        //                        await writer.WriteLineAsync($"fastboot %* set_active {part.FileName}");
+        //                    }
+        //                    else if (part.Command == "reboot")
+        //                    {
+        //                        await writer.WriteLineAsync("fastboot %* reboot");
+        //                    }
+        //                    else if (part.Command == "erase")
+        //                    {
+        //                        await writer.WriteLineAsync($"fastboot %* erase {part.Name}");
+        //                    }
+        //                    else
+        //                    {
+        //                        // 默认补全为 flash，没有文件名时按 images/分区名.img
+        //                        string fName = string.IsNullOrEmpty(part.FileName) ? $"images/{part.Name}.img" : part.FileName;
+        //                        fName = fName.Replace('/', '\\'); // .bat 使用反斜杠
+        //                        string command = string.IsNullOrEmpty(part.Command) ? "flash" : part.Command;
+        //                        await writer.WriteLineAsync($"fastboot %* {command} {part.Name} %~dp0{fName}");
+        //                    }
+        //                }
+        //            }
+        //            else if (selectedType == ".sh")
+        //            {
+        //                foreach (var part in vm.FalshPartModel)
+        //                {
+        //                    if (part.Command == "set_active")
+        //                    {
+        //                        await writer.WriteLineAsync($"fastboot $* set_active {part.FileName}");
+        //                    }
+        //                    else if (part.Command == "reboot")
+        //                    {
+        //                        await writer.WriteLineAsync("fastboot $* reboot");
+        //                    }
+        //                    else if (part.Command == "erase")
+        //                    {
+        //                        await writer.WriteLineAsync($"fastboot $* erase {part.Name}");
+        //                    }
+        //                    else
+        //                    {
+        //                        string fName = string.IsNullOrEmpty(part.FileName) ? $"images/{part.Name}.img" : part.FileName;
+        //                        fName = fName.Replace('\\', '/'); // .sh 使用斜杠
+        //                        string command = string.IsNullOrEmpty(part.Command) ? "flash" : part.Command;
+        //                        await writer.WriteLineAsync($"fastboot $* {command} {part.Name} `dirname $0`/{fName}");
+        //                    }
+        //                }
+        //            }
+        //            else if (selectedType == ".txt")
+        //            {
+        //                foreach (var part in vm.FalshPartModel)
+        //                {
+        //                    if (part.Command == "delete" || part.Command == "create")
+        //                    {
+        //                        await writer.WriteLineAsync($"{part.Name} {part.Command}");
+        //                    }
+        //                    else if (part.Command == "erase" || part.Command == "set_active" || part.Command == "reboot")
+        //                    {
+        //                        // .txt 规范主要用于刷入或创建删除，跳过或记录为注释
+        //                        await writer.WriteLineAsync($"# {part.Command} {part.Name} {part.FileName}");
+        //                    }
+        //                    else
+        //                    {
+        //                        // 默认镜像只写分区名，指定镜像写分区名和相对路径
+        //                        if (string.IsNullOrEmpty(part.FileName) || part.FileName.Equals($"{part.Name}.img", StringComparison.OrdinalIgnoreCase))
+        //                        {
+        //                            await writer.WriteLineAsync(part.Name);
+        //                        }
+        //                        else
+        //                        {
+        //                            string relativePath = $"images/{part.FileName}".Replace('\\', '/');
+        //                            await writer.WriteLineAsync($"{part.Name} {relativePath}");
+        //                        }
+        //                    }
+        //                }
+        //            }
+
+        //            AdvancedflashLog.Text += $"\nExported successfully to {file.Name}";
+
+        //            // 自动打开导出文件所在的目录
+        //            if (file.TryGetLocalPath() is string localPath && !string.IsNullOrEmpty(localPath))
+        //            {
+        //                string directory = Path.GetDirectoryName(localPath);
+        //                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
+        //                {
+        //                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        //                    {
+        //                        FileName = directory,
+        //                        UseShellExecute = true,
+        //                        Verb = "open"
+        //                    });
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            AdvancedflashLog.Text += $"\nExport Error: {ex.Message}";
+        //        }
+        //    }
+        //}
     }
 }

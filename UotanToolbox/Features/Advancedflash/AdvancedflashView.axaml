@@ -78,8 +78,8 @@
 											</DataGridTemplateColumn.CellTemplate>
 										</DataGridTemplateColumn>
 										<DataGridTextColumn Binding="{Binding Command}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Command}"/>
-										<DataGridTextColumn Binding="{Binding Size}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Size}"/>
 										<DataGridTextColumn Binding="{Binding Name}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Tag}"/>
+										<DataGridTextColumn Binding="{Binding Size}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Size}"/>
 										<DataGridTemplateColumn IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_File}">
 											<DataGridTemplateColumn.CellTemplate>
 												<DataTemplate>
@@ -87,7 +87,7 @@
 															Theme="{StaticResource ToolboxButtonFile}"
 															Content="{Binding FileName}"
 															Click="OpenImageFile"
-															ToolTip.Tip="{x:Static assets:Resources.Advancedflash_ChangeImg}"/>
+															ToolTip.Tip="{Binding FullFilePath}"/>
 												</DataTemplate>
 											</DataGridTemplateColumn.CellTemplate>
 										</DataGridTemplateColumn>
@@ -107,8 +107,8 @@
 										   Text="{x:Static assets:Resources.Advancedflash_Basic}" />
 								<StackPanel Margin="0 5 0 0" HorizontalAlignment="Center" Spacing="10">
 									<Button Width="200"
-											Name="ReadInof"
-
+											Name="Read"
+											Click="ReadInfo"
 											HorizontalAlignment="Left"
 											Padding="8">
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_ReadInfo}"/>
@@ -121,15 +121,15 @@
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_FlashSelected}"/>
 									</Button>
 									<Button Width="200"
-											Name="EraseSelect"
-
+											Name="Erase"
+											Click="EraseSelect"
 											HorizontalAlignment="Left"
 											Padding="8">
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_EraseSelected}"/>
 									</Button>
 									<Button Width="200"
-											Name="SetOther"
-
+											Name="SetOt"
+											Click="SetOther"
 											HorizontalAlignment="Left"
 											Padding="8">
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_SetOther}"/>
@@ -137,7 +137,7 @@
 								</StackPanel>
 								<StackPanel Orientation="Horizontal" Margin="0 15 0 0">
 									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="5">
-										<CheckBox Name="AddRoot" IsChecked="False" />
+										<CheckBox Name="AddRoot" IsChecked="False" IsCheckedChanged="CheckRoot"/>
 										<TextBlock VerticalAlignment="Center"
 												   FontSize="14"
 												   Width="90"
@@ -188,7 +188,7 @@
 									<Button Width="200"
 											Name="ToScr"
 											Margin="5 -5 0 0"
-
+											Click="Export"
 											HorizontalAlignment="Left"
 											Padding="8">
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_ExportScript}" />
