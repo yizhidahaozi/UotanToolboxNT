@@ -68,6 +68,9 @@ public partial class SettingsViewModel : MainPageBase
             SelectedLanguageList = "简体中文";
         }
 
+        // load user choice for native mode
+        UseNative = UotanToolbox.Settings.Default.UseNative;
+
         _ = CheckBinVersion();
         AvailableBackgroundStyles = new AvaloniaList<SukiBackgroundStyle>(Enum.GetValues<SukiBackgroundStyle>());
         AvailableColors = _theme.ColorThemes;
@@ -114,6 +117,12 @@ public partial class SettingsViewModel : MainPageBase
     private void SwitchToColorTheme(SukiColorTheme colorTheme)
     {
         _theme.ChangeColorTheme(colorTheme);
+    }
+
+    partial void OnUseNativeChanged(bool value)
+    {
+        UotanToolbox.Settings.Default.UseNative = value;
+        UotanToolbox.Settings.Default.Save();
     }
 
     partial void OnBackgroundStyleChanged(SukiBackgroundStyle value) =>

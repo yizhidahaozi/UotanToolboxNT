@@ -46,5 +46,17 @@ namespace UotanToolbox {
                 this["Language"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseNative {
+            get {
+                return ((bool)(this["UseNative"]));
+            }
+            set {
+                this["UseNative"] = value;
+            }
+        }
     }
 }
