@@ -83,7 +83,14 @@ public partial class AdvancedflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            string path = File.Text = files[0].TryGetLocalPath();
+            var localPath = files[0].TryGetLocalPath();
+            if (string.IsNullOrWhiteSpace(localPath))
+            {
+                AdvancedflashLog.Text += "\nInvalid selected file path.";
+                return;
+            }
+
+            string path = File.Text = localPath;
             BusyFlash.IsBusy = true;
 
             var extension = Path.GetExtension(path);
@@ -91,6 +98,9 @@ public partial class AdvancedflashView : UserControl
             {
                 _parsedFileType = ParsedFileType.Script;
                 AdvancedflashLog.Text += $"\nSkip script type: {Path.GetFileName(path)}";
+                //检测后的脚本逻辑写这里
+
+                TrySyncFileNamesFromUnpackFolder(path);
                 BusyFlash.IsBusy = false;
                 return;
             }
@@ -102,6 +112,8 @@ public partial class AdvancedflashView : UserControl
                 {
                     AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}";
                 }
+
+                TrySyncFileNamesFromUnpackFolder(path);
             }
             catch (Exception ex)
             {
@@ -280,6 +292,7 @@ public partial class AdvancedflashView : UserControl
                 }
 
                 _parsedFileType = ParsedFileType.PayloadUrl;
+                TrySyncFileNamesFromUnpackFolder(File.Text, true);
             }
             else
             {
@@ -300,16 +313,23 @@ public partial class AdvancedflashView : UserControl
         ExtractSelect.IsEnabled = false;
         try
         {
-            if (Uri.IsWellFormedUriString(File.Text, UriKind.Absolute))
+            var sourcePath = File.Text ?? string.Empty;
+            var isUrl = Uri.IsWellFormedUriString(sourcePath, UriKind.Absolute);
+            if (string.IsNullOrWhiteSpace(sourcePath))
             {
-                AdvancedflashLog.Text += "\nURL extraction is not supported in this action.";
+                AdvancedflashLog.Text += "\nInvalid image path.";
                 return;
             }
 
-            var sourcePath = File.Text;
-            if (string.IsNullOrWhiteSpace(sourcePath) || !System.IO.File.Exists(sourcePath))
+            if (!isUrl && !System.IO.File.Exists(sourcePath))
             {
                 AdvancedflashLog.Text += "\nInvalid image path.";
+                return;
+            }
+
+            if (isUrl && _parsedFileType != ParsedFileType.PayloadUrl)
+            {
+                AdvancedflashLog.Text += "\nCurrent URL is not in payload_url mode.";
                 return;
             }
 
@@ -321,8 +341,7 @@ public partial class AdvancedflashView : UserControl
                 return;
             }
 
-            var parentDir = Path.GetDirectoryName(sourcePath) ?? Directory.GetCurrentDirectory();
-            var outputDir = Path.Combine(parentDir, $"{Path.GetFileName(sourcePath)}-unpack");
+            var outputDir = GetUnpackOutputDir(sourcePath, isUrl);
             Directory.CreateDirectory(outputDir);
 
             switch (_parsedFileType)
@@ -332,6 +351,9 @@ public partial class AdvancedflashView : UserControl
                     break;
                 case ParsedFileType.Super:
                     await ExtractSuperSelectedAsync(sourcePath, outputDir, selectedParts);
+                    break;
+                case ParsedFileType.PayloadUrl:
+                    await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts);
                     break;
                 default:
                     AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
@@ -476,6 +498,83 @@ public partial class AdvancedflashView : UserControl
 
             output.Write(buffer, 0, read);
             remaining -= read;
+        }
+    }
+
+    private static async Task ExtractPayloadUrlSelectedAsync(string sourceUrl, string outputDir, List<FalshPartModel> selectedParts)
+    {
+        var names = selectedParts
+            .Select(x => x.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        await PayloadParser.ExtractSelectedPartitionsFromUrlV2Async(sourceUrl, outputDir, names);
+    }
+
+    private static string GetUnpackOutputDir(string sourcePath, bool isUrl)
+    {
+        if (isUrl)
+        {
+            var uri = new Uri(sourcePath, UriKind.Absolute);
+            var name = Path.GetFileName(Uri.UnescapeDataString(uri.AbsolutePath));
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "payload_url";
+            }
+
+            return Path.Combine(GetBackupRootDir(), $"{name}-unpack");
+        }
+
+        var parentDir = Path.GetDirectoryName(sourcePath) ?? Directory.GetCurrentDirectory();
+        return Path.Combine(parentDir, $"{Path.GetFileName(sourcePath)}-unpack");
+    }
+
+    private static string GetBackupRootDir()
+    {
+        var toolboxDir = AppContext.BaseDirectory;
+        var backupDir = Path.Combine(toolboxDir, "backup");
+        Directory.CreateDirectory(backupDir);
+        return backupDir;
+    }
+
+    private void TrySyncFileNamesFromUnpackFolder(string sourcePath, bool isUrl = false)
+    {
+        var unpackDir = GetUnpackOutputDir(sourcePath, isUrl);
+        if (!Directory.Exists(unpackDir))
+        {
+            return;
+        }
+
+        var vm = GetViewModel();
+        if (vm.FalshPartModel.Count == 0)
+        {
+            AdvancedflashLog.Text += $"\nDetected unpack folder: {unpackDir}";
+            return;
+        }
+
+        var existingImages = new HashSet<string>(
+            Directory.GetFiles(unpackDir, "*.img", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!),
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        var matched = 0;
+        foreach (var item in vm.FalshPartModel)
+        {
+            var expectedImage = $"{item.Name}.img";
+            if (existingImages.Contains(expectedImage))
+            {
+                item.FileName = expectedImage;
+                matched++;
+            }
+        }
+
+        if (matched > 0)
+        {
+            AdvancedflashLog.Text += $"\nAuto-matched {matched} extracted images from {Path.GetFileName(unpackDir)}";
         }
     }
 

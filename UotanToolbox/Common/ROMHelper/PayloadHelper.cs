@@ -1198,6 +1198,32 @@ namespace UotanToolbox.Common.ROMHelper
             }
         }
 
+        public static async Task ExtractSelectedPartitionsFromUrlV2Async(string url, string outputDir, string[]? partitionNames = null)
+        {
+            partitionNames ??= Array.Empty<string>();
+            Directory.CreateDirectory(outputDir);
+
+            using var client = new HttpClient();
+            var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
+            using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
+
+            PayloadParser parser = new();
+            var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
+
+            IEnumerable<PartitionUpdate> partitions = manifest.Partitions.Where(p => !string.IsNullOrWhiteSpace(p.PartitionName));
+            if (partitionNames.Length > 0)
+            {
+                var wanted = new HashSet<string>(partitionNames, StringComparer.OrdinalIgnoreCase);
+                partitions = partitions.Where(p => p.PartitionName != null && wanted.Contains(p.PartitionName));
+            }
+
+            foreach (var part in partitions)
+            {
+                var outPath = Path.Combine(outputDir, part.PartitionName + ".img");
+                parser.ExtractPartition(part, outPath, stream, baseOffset, manifest.BlockSize);
+            }
+        }
+
         private static int FindEOCDOffset(byte[] data)
         {
             for (int i = data.Length - 22; i >= 0; i--)
