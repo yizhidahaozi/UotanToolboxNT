@@ -1777,4 +1777,7 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   <data name="Advancedflash_ReadInfo" xml:space="preserve">
     <value>Read info</value>
   </data>
+  <data name="Common_Executing" xml:space="preserve">
+    <value>Executing</value>
+  </data>
 </root>
