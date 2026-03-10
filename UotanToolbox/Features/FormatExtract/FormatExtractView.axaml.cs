@@ -59,7 +59,7 @@ public partial class FormatExtractView : UserControl
     {
         await Task.Run(() =>
         {
-            string cmd = Path.Combine(Global.bin_path, "platform-tools", "fastboot");
+            string cmd = Global.FastbootPath;
             ProcessStartInfo fastboot = new ProcessStartInfo(cmd, fbshell)
             {
                 CreateNoWindow = true,

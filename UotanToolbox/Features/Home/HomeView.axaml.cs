@@ -36,13 +36,13 @@ public partial class HomeView : UserControl
         string filepath2 = "";
         if (Global.System == "Windows")
         {
-            filepath1 = Path.Combine(Global.bin_path, "platform-tools", "adb.exe");
-            filepath2 = Path.Combine(Global.bin_path, "platform-tools", "fastboot.exe");
+            filepath1 = Global.AdbPath;
+            filepath2 = Global.FastbootPath;
         }
         else
         {
-            filepath1 = Path.Combine(Global.bin_path, "platform-tools", "adb");
-            filepath2 = Path.Combine(Global.bin_path, "platform-tools", "fastboot");
+            filepath1 = Global.AdbPath;
+            filepath2 = Global.FastbootPath;
         }
         if (!File.Exists(filepath1) || !File.Exists(filepath2))
         {

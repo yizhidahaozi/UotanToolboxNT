@@ -1,6 +1,7 @@
 ﻿using Avalonia.Collections;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
+using System.IO;
 
 namespace UotanToolbox.Common
 {
@@ -45,6 +46,37 @@ namespace UotanToolbox.Common
 
         // 设备管理器实例
         public static UotanToolbox.Common.Devices.DeviceManager DeviceManager;
+
+        /// <summary>
+        /// Returns the full path to the fastboot executable that will be invoked by the
+        /// various helper methods.  The name switches to <c>fastbootcli</c> when the
+        /// "Use Native" setting is enabled, and the ".exe" suffix is added on
+        /// Windows.
+        /// </summary>
+        public static string FastbootPath
+        {
+            get
+            {
+                string name = UotanToolbox.Settings.Default.UseNative ? "fastbootcli" : "fastboot";
+                if (System == "Windows")
+                    name += ".exe";
+                return Path.Combine(bin_path, "platform-tools", name);
+            }
+        }
+
+        /// <summary>
+        /// Convenience property for adb; kept for symmetry and future use.
+        /// </summary>
+        public static string AdbPath
+        {
+            get
+            {
+                string name = "adb";
+                if (System == "Windows")
+                    name += ".exe";
+                return Path.Combine(bin_path, "platform-tools", name);
+            }
+        }
     }
     public class BootInfo(string sha1, string path, string tempPath, bool isUseful, bool gki2, string version, string kmi, string osversion, string patchlevel, bool haveramdisk, bool havekernel, bool havedtb, string dtbname, string arch, string compress)
     {

@@ -58,7 +58,8 @@ namespace UotanToolbox.Common
 
         public static async Task<string> Fastboot(string fbshell)
         {
-            string cmd = Path.Combine(Global.bin_path, "platform-tools", "fastboot");
+            // choose binary name based on native flag from settings
+            string cmd = Global.FastbootPath;
             ProcessStartInfo fastboot = new ProcessStartInfo(cmd, fbshell)
             {
                 CreateNoWindow = true,
