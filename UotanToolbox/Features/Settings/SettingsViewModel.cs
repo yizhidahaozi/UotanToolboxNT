@@ -20,17 +20,17 @@ namespace UotanToolbox.Features.Settings;
 
 public partial class SettingsViewModel : MainPageBase
 {
-    public Action<SukiBackgroundStyle> BackgroundStyleChanged { get; set; }
-    public Action<bool> BackgroundAnimationsChanged { get; set; }
-    public Action<bool> BackgroundTransitionsChanged { get; set; }
-    public Action<string> CustomBackgroundStyleChanged { get; set; }
+    public Action<SukiBackgroundStyle>? BackgroundStyleChanged { get; set; }
+    public Action<bool>? BackgroundAnimationsChanged { get; set; }
+    public Action<bool>? BackgroundTransitionsChanged { get; set; }
+    public Action<string?>? CustomBackgroundStyleChanged { get; set; }
 
     public IAvaloniaReadOnlyList<SukiColorTheme> AvailableColors { get; }
     public IAvaloniaReadOnlyList<SukiBackgroundStyle> AvailableBackgroundStyles { get; }
     public IAvaloniaReadOnlyList<string> CustomShaders { get; } = new AvaloniaList<string> { "Space", "Weird", "Clouds" };
 
     public AvaloniaList<string> LanguageList { get; } = [GetTranslation("Settings_Default"), "English", "简体中文"];
-    [ObservableProperty] private string _selectedLanguageList;
+    [ObservableProperty] private string _selectedLanguageList = string.Empty;
 
     private readonly SukiTheme _theme = SukiTheme.GetInstance();
 
@@ -40,13 +40,13 @@ public partial class SettingsViewModel : MainPageBase
     [ObservableProperty] private bool _backgroundTransitions;
     [ObservableProperty] private bool _useNative = true;
     [ObservableProperty] private string _currentVersion = Global.currentVersion;
-    [ObservableProperty] private string _binVersion = null;
+    [ObservableProperty] private string _binVersion = string.Empty;
     [ObservableProperty] private string _csvPath = Global.BootPatchPath;
     [ObservableProperty] private string _backPath = Global.backup_path;
     [ObservableProperty] private string _mouZei = "@某贼\r\n提供开发思路";
     [ObservableProperty] private string _kCN = "@剧毒的KCN\r\n安装器开发";
     [ObservableProperty] private string _aCA = "@小太阳ACA\r\n依赖支持";
-    private string _customShader = null;
+    private string? _customShader;
 
     private static string GetTranslation(string key)
     {
@@ -99,7 +99,7 @@ public partial class SettingsViewModel : MainPageBase
 
     partial void OnSelectedLanguageListChanged(string value)
     {
-        string OldLanguage = null;
+        string? OldLanguage = null;
         if (value == GetTranslation("Settings_Default")) OldLanguage = "";
         else if (value == "English") OldLanguage = "en-US";
         else if (value == "简体中文") OldLanguage = "zh-CN";

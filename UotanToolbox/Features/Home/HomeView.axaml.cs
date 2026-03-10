@@ -16,7 +16,7 @@ namespace UotanToolbox.Features.Home;
 
 public partial class HomeView : UserControl
 {
-    private WirelessADB _wirelessADB;
+    private WirelessADB? _wirelessADB;
 
     public static string GetTranslation(string key)
     {
@@ -150,13 +150,12 @@ public partial class HomeView : UserControl
         if (Global.System == "Windows")
         {
             string cmd = @"drive\USB3.bat";
-            ProcessStartInfo cmdshell = null;
-            cmdshell = new ProcessStartInfo(cmd)
+            ProcessStartInfo cmdshell = new ProcessStartInfo(cmd)
             {
                 CreateNoWindow = true,
                 UseShellExecute = false
             };
-            Process f = Process.Start(cmdshell);
+            _ = Process.Start(cmdshell);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
@@ -173,13 +172,12 @@ public partial class HomeView : UserControl
         if (Global.System == "Windows")
         {
             string cmd = @"drive\ReUSB3.bat";
-            ProcessStartInfo cmdshell = null;
-            cmdshell = new ProcessStartInfo(cmd)
+            ProcessStartInfo cmdshell = new ProcessStartInfo(cmd)
             {
                 CreateNoWindow = true,
                 UseShellExecute = false
             };
-            Process f = Process.Start(cmdshell);
+            _ = Process.Start(cmdshell);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
@@ -202,7 +200,7 @@ public partial class HomeView : UserControl
         _wirelessADB.Show();
     }
 
-    private void CloseWirelessADB(object sender, RoutedEventArgs args)
+    private void CloseWirelessADB(object? sender, RoutedEventArgs args)
     {
         _wirelessADB?.Close();
     }

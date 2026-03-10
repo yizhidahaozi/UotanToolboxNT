@@ -37,14 +37,14 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private ThemeVariant _baseTheme;
     [ObservableProperty] private bool _animationsEnabled;
-    [ObservableProperty] private MainPageBase _activePage;
+    [ObservableProperty] private MainPageBase _activePage = null!;
     [ObservableProperty] private SukiBackgroundStyle _backgroundStyle = SukiBackgroundStyle.Gradient;
-    [ObservableProperty] private string _customShaderFile;
+    [ObservableProperty] private string _customShaderFile = string.Empty;
     [ObservableProperty] private bool _transitionsEnabled;
     [ObservableProperty] private double _transitionTime;
 
     [ObservableProperty]
-    private string _status, _codeName, _bLStatus, _vABStatus;
+    private string _status = string.Empty, _codeName = string.Empty, _bLStatus = string.Empty, _vABStatus = string.Empty;
     private readonly SukiTheme _theme;
     private readonly SettingsViewModel _theming;
 
@@ -67,7 +67,7 @@ public partial class MainViewModel : ObservableObject
         _theme = SukiTheme.GetInstance();
         nav.NavigationRequested += t =>
         {
-            MainPageBase page = DemoPages.FirstOrDefault(x => x.GetType() == t);
+            MainPageBase? page = DemoPages.FirstOrDefault(x => x.GetType() == t);
             if (page is null || ActivePage?.GetType() == t)
             {
                 return;
@@ -126,20 +126,20 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot");
+                        await deviceManager!.ExecuteAsync(device, "target boot");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -162,25 +162,25 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                        await deviceManager!.ExecuteAsync(device, "reboot recovery");
                         break;
                     case TransportType.Fastboot:
-                        string output = await Global.DeviceManager.ExecuteAsync(device, "oem reboot-recovery");
+                        string output = await deviceManager!.ExecuteAsync(device, "oem reboot-recovery");
                         if (output.Contains("unknown command"))
                         {
-                            await Global.DeviceManager.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
-                            await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                            await deviceManager!.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
+                            await deviceManager!.ExecuteAsync(device, "reboot");
                         }
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -recovery");
+                        await deviceManager!.ExecuteAsync(device, "target boot -recovery");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -203,19 +203,20 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot bootloader");
+                        await deviceManager!.ExecuteAsync(device, "reboot bootloader");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot-bootloader");
+                        await deviceManager!.ExecuteAsync(device, "reboot-bootloader");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -bootloader");
+                        await deviceManager!.ExecuteAsync(device, "target boot -bootloader");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -238,19 +239,20 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot fastboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot fastboot");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot-fastboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot-fastboot");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -fastboot");
+                        await deviceManager!.ExecuteAsync(device, "target boot -fastboot");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -273,16 +275,17 @@ public partial class MainViewModel : ObservableObject
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "disconnect");
+                        await deviceManager!.ExecuteAsync(device, "disconnect");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, $"tconn {device.Id} -remove");
+                        await deviceManager!.ExecuteAsync(device, $"tconn {device.Id} -remove");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();

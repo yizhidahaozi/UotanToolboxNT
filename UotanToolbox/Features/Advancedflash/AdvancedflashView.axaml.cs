@@ -111,12 +111,18 @@ public partial class AdvancedflashView : UserControl
 
     private AdvancedflashViewModel GetViewModel()
     {
-        return (AdvancedflashViewModel)DataContext;
+        return DataContext as AdvancedflashViewModel
+            ?? throw new InvalidOperationException("DataContext is not AdvancedflashViewModel.");
     }
 
     private async void OpenFile(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open Image File",
@@ -455,7 +461,12 @@ public partial class AdvancedflashView : UserControl
 
     private async void OpenFolder(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = "Open Folder",
@@ -463,7 +474,7 @@ public partial class AdvancedflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            string folderPath = files[0].TryGetLocalPath();
+            string? folderPath = files[0].TryGetLocalPath();
             File.Text = folderPath;
 
             BusyFlash.IsBusy = true;
@@ -874,9 +885,17 @@ public partial class AdvancedflashView : UserControl
 
     private async void OpenImageFile(object sender, RoutedEventArgs args)
     {
-        Button button = (Button)sender;
-        FalshPartModel falshPartModel = (FalshPartModel)button.DataContext;
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        if (sender is not Button button || button.DataContext is not FalshPartModel falshPartModel)
+        {
+            return;
+        }
+
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFile> file = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open Image File",
@@ -884,7 +903,7 @@ public partial class AdvancedflashView : UserControl
         });
         if (file.Count >= 1)
         {
-            falshPartModel.FileName = Path.GetFileName(StringHelper.FilePath(file[0].Path.ToString()));
+            falshPartModel.FileName = Path.GetFileName(StringHelper.FilePath(file[0].Path.ToString() ?? string.Empty));
         }
     }
 

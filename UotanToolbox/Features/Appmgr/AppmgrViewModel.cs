@@ -25,13 +25,13 @@ public partial class AppmgrViewModel : MainPageBase
     [ObservableProperty]
     private bool isSystemAppDisplayed = false, isInstalling = false;
     [ObservableProperty]
-    private string _apkFile;
+    private string _apkFile = string.Empty;
     [ObservableProperty]
-    private string _search;
+    private string _search = string.Empty;
     [ObservableProperty]
     private string _sBoxWater = GetTranslation("Appmgr_SearchApp");
-    ApplicationInfo[] allApplicationInfos;
-    List<ApplicationInfo> applicationInfos;
+    ApplicationInfo[] allApplicationInfos = [];
+    List<ApplicationInfo> applicationInfos = [];
 
     private static string GetTranslation(string key)
     {
@@ -69,7 +69,7 @@ public partial class AppmgrViewModel : MainPageBase
 
     private static readonly char[] separatorArray = ['\r', '\n'];
 
-    public static string ExtractPackageName(string line)
+    public static string? ExtractPackageName(string line)
     {
         string[] parts = line.Split(':');
         if (parts.Length < 2)
@@ -118,10 +118,10 @@ public partial class AppmgrViewModel : MainPageBase
                     }
                     string[] lines = fullApplicationsList.Split(separatorArray, StringSplitOptions.RemoveEmptyEntries);
                     HasItems = lines.Length > 0;
-                    IEnumerable<Task<ApplicationInfo>> applicationInfosTasks = lines.Select(async line =>
+                    IEnumerable<Task<ApplicationInfo?>> applicationInfosTasks = lines.Select(async line =>
                     {
-                        string displayName = null;
-                        string packageName = ExtractPackageName(line);
+                        string? displayName = null;
+                        string? packageName = ExtractPackageName(line);
                         foreach (ApplicationInfo app in fullapplications)
                         {
                             if (app.Name == packageName)
@@ -137,9 +137,9 @@ public partial class AppmgrViewModel : MainPageBase
                         string combinedOutput = await FeaturesHelper.AdbCmd(Global.thisdevice, $"shell dumpsys package {packageName}");
                         string[] splitOutput = combinedOutput.Split('\n', ' ');
                         string otherInfo = GetVersionName(splitOutput) + " | " + GetInstalledDate(splitOutput) + " | " + GetSdkVersion(splitOutput);
-                        return new ApplicationInfo { Name = packageName, DisplayName = StringHelper.RemoveLineFeed(displayName), OtherInfo = otherInfo };
+                        return new ApplicationInfo { Name = packageName, DisplayName = StringHelper.RemoveLineFeed(displayName ?? string.Empty), OtherInfo = otherInfo };
                     });
-                    allApplicationInfos = await Task.WhenAll(applicationInfosTasks);
+                    allApplicationInfos = [.. (await Task.WhenAll(applicationInfosTasks)).Where(info => info != null).Select(info => info!)];
                     applicationInfos = [.. allApplicationInfos.Where(info => info != null)
                                                              .OrderByDescending(app => app.Size)
                                                              .ThenBy(app => app.Name)];
@@ -152,7 +152,7 @@ public partial class AppmgrViewModel : MainPageBase
                     HasItems = applist.Length > 2;
                     ApplicationInfo[] applicationInfo = new ApplicationInfo[applist.Length - 2];
                     ApplicationInfo[] OHApplicationInfos;
-                    List<ApplicationInfo> OHApplicationList = null;
+                    List<ApplicationInfo> OHApplicationList = [];
                     for (int i = 2; i < applist.Length; i++)
                     {
                         string[] appinfo = StringHelper.OHAppInfo(await FeaturesHelper.HdcCmd(Global.thisdevice, $"shell bm dump -n {applist[i]}"));
@@ -798,7 +798,7 @@ public partial class AppmgrViewModel : MainPageBase
 
     private static string GetInstalledDate(string[] lines)
     {
-        string installedDateLine = lines.FirstOrDefault(x => x.Contains("lastUpdateTime"));
+        string? installedDateLine = lines.FirstOrDefault(x => x.Contains("lastUpdateTime"));
         if (installedDateLine != null)
         {
             string installedDate = installedDateLine[(installedDateLine.IndexOf('=') + 1)..].Trim();
@@ -809,7 +809,7 @@ public partial class AppmgrViewModel : MainPageBase
 
     private static string GetSdkVersion(string[] lines)
     {
-        string sdkVersion = lines.FirstOrDefault(x => x.Contains("targetSdk"));
+        string? sdkVersion = lines.FirstOrDefault(x => x.Contains("targetSdk"));
         if (sdkVersion != null)
         {
             string installedDate = "SDK" + sdkVersion[(sdkVersion.IndexOf('=') + 1)..].Trim();
@@ -820,7 +820,7 @@ public partial class AppmgrViewModel : MainPageBase
 
     private static string GetVersionName(string[] lines)
     {
-        string versionName = lines.FirstOrDefault(x => x.Contains("versionName"));
+        string? versionName = lines.FirstOrDefault(x => x.Contains("versionName"));
         if (versionName != null)
         {
             string installedDate = versionName[(versionName.IndexOf('=') + 1)..].Trim();
@@ -836,14 +836,14 @@ public partial class ApplicationInfo : ObservableObject
     private bool isSelected;
 
     [ObservableProperty]
-    private string name;
+    private string name = string.Empty;
 
     [ObservableProperty]
     private string? displayName;
 
     [ObservableProperty]
-    private string size;
+    private string size = string.Empty;
 
     [ObservableProperty]
-    private string otherInfo;
+    private string otherInfo = string.Empty;
 }

@@ -8,21 +8,21 @@ namespace UotanToolbox.Common
     internal class Global
     {
         public static bool checkdevice = true;
-        public static string runpath = null;
-        public static string bin_path = null;
-        public static string tmp_path = null;
-        public static string log_path = null;
-        public static string backup_path = null;
+        public static string runpath = string.Empty;
+        public static string bin_path = string.Empty;
+        public static string tmp_path = string.Empty;
+        public static string log_path = string.Empty;
+        public static string backup_path = string.Empty;
         public static string System = "Windows";
-        public static string serviceID = null;
-        public static string password = null;
+        public static string serviceID = string.Empty;
+        public static string password = string.Empty;
         public static bool root = true;
-        public static AvaloniaList<string> deviceslist;
-        public static string thisdevice = null;
+        public static AvaloniaList<string> deviceslist = [];
+        public static string thisdevice = string.Empty;
         public static PatchInfo Zipinfo = new PatchInfo("", "", false, PatchMode.None);
         public static BootInfo Bootinfo = new BootInfo("", "", "", false, false, "", "", "", "", false, false, false, "", "", "");
         public static int mb_exitcode, cpio_exitcode, load_times;
-        public static string SetBoot = null;
+        public static string SetBoot = string.Empty;
         public static bool SetResize = false;
         //分区表储存
         public static string sdatable = "";
@@ -38,14 +38,14 @@ namespace UotanToolbox.Common
         public static string currentVersion = "3.5.0";
         public static bool isLightThemeChanged = false;
         //主页的Dialog
-        public static ISukiDialogManager MainDialogManager;
-        public static ISukiToastManager MainToastManager;
+        public static ISukiDialogManager MainDialogManager = null!;
+        public static ISukiToastManager MainToastManager = null!;
 
-        public static string BootPatchPath { get; internal set; }
-        public static string MagiskAPKPath { get; internal set; }
+        public static string BootPatchPath { get; internal set; } = string.Empty;
+        public static string MagiskAPKPath { get; internal set; } = string.Empty;
 
         // 设备管理器实例
-        public static UotanToolbox.Common.Devices.DeviceManager DeviceManager;
+        public static UotanToolbox.Common.Devices.DeviceManager DeviceManager = null!;
 
         /// <summary>
         /// Returns the full path to the fastboot executable that will be invoked by the
@@ -115,7 +115,7 @@ namespace UotanToolbox.Common
 
     public static class GlobalData
     {
-        public static MainViewModel MainViewModelInstance { get; set; }
+        public static MainViewModel MainViewModelInstance { get; set; } = null!;
     }
     public enum PatchMode
     {

@@ -27,15 +27,15 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     _vABStatus = "--", _codeName = "--", _vNDKVersion = "--", _cPUCode = "--",
     _powerOnTime = "--", _deviceBrand = "--", _deviceModel = "--", _systemSDK = "--",
     _cPUABI = "--", _displayHW = "--", _density = "--", _boardID = "--", _platform = "--",
-    _compile = "--", _kernel = "--", _selectedSimpleContent = null, _diskType = "--",
+    _compile = "--", _kernel = "--", _selectedSimpleContent = string.Empty, _diskType = "--",
     _batteryLevel = "0", _batteryInfo = "--", _useMem = "--", _diskInfo = "--";
     [ObservableProperty] private bool _IsConnecting;
     [ObservableProperty] private bool _commonDevicesList;
-    [ObservableProperty] private static AvaloniaList<string> _simpleContent;
+    [ObservableProperty] private static AvaloniaList<string> _simpleContent = [];
     public IAvaloniaReadOnlyList<MainPageBase> DemoPages { get; }
 
     [ObservableProperty] private bool _animationsEnabled;
-    [ObservableProperty] private MainPageBase _activePage;
+    [ObservableProperty] private MainPageBase _activePage = null!;
     [ObservableProperty] private bool _windowLocked = false;
     private bool _isApplyingSelection;
     private int _consecutiveEmptyScans;
@@ -73,7 +73,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
                 else
                 {
                     // selection cleared or invalid -> back to startup style
-                    Global.thisdevice = null;
+                    Global.thisdevice = string.Empty;
                     ResetDeviceInfo();
                 }
             });
@@ -161,7 +161,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
     }
 
-    private void DeviceManager_DeviceAdded(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    private void DeviceManager_DeviceAdded(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
         // if new device appears refresh list, keep selection (do not warn)
         _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: true);
@@ -173,13 +173,13 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             .Queue();
     }
 
-    private async void DeviceManager_DeviceRemoved(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    private async void DeviceManager_DeviceRemoved(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
         // compute next selectable item before refreshing list
         var oldList = SimpleContent?.ToList() ?? new List<string>();
         var removedIndex = oldList.IndexOf(e.Device.Id);
         var removedWasSelected = SelectedSimpleContent == e.Device.Id;
-        string nextSelectable = null;
+        string? nextSelectable = null;
 
         if (removedWasSelected && oldList.Count > 1)
         {
@@ -247,7 +247,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         await ConnectCore();
     }
 
-    public async Task<bool> GetDevicesList(bool showWarning = false, string preferredSelection = null, bool resetWhenEmpty = true, bool rescan = true, bool refreshDetails = true)
+    public async Task<bool> GetDevicesList(bool showWarning = false, string? preferredSelection = null, bool resetWhenEmpty = true, bool rescan = true, bool refreshDetails = true)
     {
         if (Global.DeviceManager == null)
         {
@@ -258,8 +258,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
             Global.deviceslist = new AvaloniaList<string>();
             SimpleContent = Global.deviceslist;
-            Global.thisdevice = null;
-            SelectedSimpleContent = null;
+            Global.thisdevice = string.Empty;
+            SelectedSimpleContent = string.Empty;
             ResetDeviceInfo();
             return false;
         }
@@ -307,9 +307,9 @@ public partial class HomeViewModel : MainPageBase, IDisposable
                 // no devices remain: clear dropdown + home info to startup state
                 Global.deviceslist = new AvaloniaList<string>();
                 SimpleContent = Global.deviceslist;
-                Global.thisdevice = null;
+                Global.thisdevice = string.Empty;
                 _isApplyingSelection = true;
-                SelectedSimpleContent = null;
+                SelectedSimpleContent = string.Empty;
                 _isApplyingSelection = false;
                 ResetDeviceInfo();
             }
@@ -405,7 +405,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
                 bool changed = !oldSets.ContainsKey(transport) || !oldSets[transport].SetEquals(set);
                 if (changed)
                 {
-                    string toastText = transport switch
+                    string? toastText = transport switch
                     {
                         TransportType.Adb => GetTranslation("Home_ADBScanCompleted"),
                         TransportType.Fastboot => GetTranslation("Home_FastbootScanCompleted"),
@@ -438,19 +438,20 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot");
+                        await deviceManager!.ExecuteAsync(device, "target boot");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -473,30 +474,31 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                        await deviceManager!.ExecuteAsync(device, "reboot recovery");
                         break;
                     case TransportType.Fastboot:
                         {
-                            string output = await Global.DeviceManager.ExecuteAsync(device, "oem reboot-recovery");
+                            string output = await deviceManager!.ExecuteAsync(device, "oem reboot-recovery");
                             if (output.Contains("unknown command"))
                             {
-                                await Global.DeviceManager.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
-                                await Global.DeviceManager.ExecuteAsync(device, "reboot");
+                                await deviceManager!.ExecuteAsync(device, $"flash misc \"{Path.Combine(Global.runpath, "Image", "misc.img")}\"");
+                                await deviceManager!.ExecuteAsync(device, "reboot");
                             }
                             else
                             {
-                                await Global.DeviceManager.ExecuteAsync(device, "reboot recovery");
+                                await deviceManager!.ExecuteAsync(device, "reboot recovery");
                             }
                         }
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -recovery");
+                        await deviceManager!.ExecuteAsync(device, "target boot -recovery");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -519,19 +521,20 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot bootloader");
+                        await deviceManager!.ExecuteAsync(device, "reboot bootloader");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot-bootloader");
+                        await deviceManager!.ExecuteAsync(device, "reboot-bootloader");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -bootloader");
+                        await deviceManager!.ExecuteAsync(device, "target boot -bootloader");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -554,19 +557,20 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot fastboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot fastboot");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot-fastboot");
+                        await deviceManager!.ExecuteAsync(device, "reboot-fastboot");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -fastboot");
+                        await deviceManager!.ExecuteAsync(device, "target boot -fastboot");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -589,24 +593,25 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot -p");
+                        await deviceManager!.ExecuteAsync(device, "reboot -p");
                         break;
                     case TransportType.Fastboot:
                         {
-                            string output = await Global.DeviceManager.ExecuteAsync(device, "oem poweroff");
+                            string output = await deviceManager!.ExecuteAsync(device, "oem poweroff");
                             _ = output.Contains("unknown command")
                                 ? Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Home_NotSupported")).Dismiss().ByClickingBackground().TryShow()
                                 : Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("Home_ShutDownTip")).Dismiss().ByClickingBackground().TryShow();
                         }
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot shutdown");
+                        await deviceManager!.ExecuteAsync(device, "target boot shutdown");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -629,19 +634,20 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            var device = Global.DeviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
+            var deviceManager = Global.DeviceManager;
+            var device = deviceManager?.Devices.FirstOrDefault(d => d.Id == Global.thisdevice);
             if (device != null)
             {
                 switch (device.Transport)
                 {
                     case TransportType.Adb:
-                        await Global.DeviceManager.ExecuteAsync(device, "reboot edl");
+                        await deviceManager!.ExecuteAsync(device, "reboot edl");
                         break;
                     case TransportType.Fastboot:
-                        await Global.DeviceManager.ExecuteAsync(device, "oem edl");
+                        await deviceManager!.ExecuteAsync(device, "oem edl");
                         break;
                     case TransportType.Hdc:
-                        await Global.DeviceManager.ExecuteAsync(device, "target boot -edl");
+                        await deviceManager!.ExecuteAsync(device, "target boot -edl");
                         break;
                     default:
                         Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Common_ModeError")).Dismiss().ByClickingBackground().TryShow();
@@ -659,7 +665,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
     }
 
-    private void DeviceManager_DeviceUpdated(object sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    private void DeviceManager_DeviceUpdated(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
         _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: true);
 
@@ -672,7 +678,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             .Queue();
     }
 
-    private void DeviceManager_ScanCompleted(object sender, EventArgs e)
+    private void DeviceManager_ScanCompleted(object? sender, EventArgs e)
     {
         if (Global.DeviceManager == null)
         {

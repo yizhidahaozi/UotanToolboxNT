@@ -26,8 +26,11 @@ public partial class AppmgrView : UserControl
 
     private async void UninstallButton_Click(object sender, RoutedEventArgs e)
     {
-        Button button = (Button)sender;
-        ApplicationInfo applicationInfo = (ApplicationInfo)button.DataContext;
+        if (sender is not Button button || button.DataContext is not ApplicationInfo applicationInfo)
+        {
+            return;
+        }
+
         await UninstallApplication(applicationInfo.Name);
     }
 
@@ -106,7 +109,12 @@ public partial class AppmgrView : UserControl
     private async void OpenApkFile(object sender, RoutedEventArgs args)
     {
         ApkFile.Text = null;
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open File",
@@ -117,7 +125,7 @@ public partial class AppmgrView : UserControl
         {
             for (int i = 0; i < files.Count; i++)
             {
-                ApkFile.Text = ApkFile.Text + files[i].TryGetLocalPath() + "|||";
+                ApkFile.Text = ApkFile.Text + (files[i].TryGetLocalPath() ?? string.Empty) + "|||";
             }
         }
     }

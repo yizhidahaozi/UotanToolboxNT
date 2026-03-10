@@ -9,7 +9,7 @@ namespace UotanToolbox.Common.QcomHelper.modules
     public class DeviceConfig
     {
         public int Version { get; set; }
-        public string Cm { get; set; }
+        public string? Cm { get; set; }
         public int ParamMode { get; set; }
     }
     internal class Oneplus(string fh, string projid, int version, int serial, int atoBuild, int flashMode, int cf, string[] supported_functions)
@@ -72,12 +72,17 @@ namespace UotanToolbox.Common.QcomHelper.modules
         };
         public static Oneplus Init(string projid, int serial, int atoBuild = 0, int flashMode = 0, int cf = 0)
         {
-            Oneplus oneplus = new Oneplus("", "18825", 1, 123456, 0, 0, 0, null)
+            Oneplus oneplus = new Oneplus("", "18825", 1, 123456, 0, 0, 0, [])
             {
                 Projid = projid,
                 Serial = serial
             };
-            DeviceConfig.TryGetValue(projid, out DeviceConfig deviceConfig);
+            DeviceConfig? deviceConfig;
+            DeviceConfig.TryGetValue(projid, out deviceConfig);
+            if (deviceConfig == null)
+            {
+                return oneplus;
+            }
             oneplus.Version = deviceConfig.Version;
             oneplus.Cf = cf;
             oneplus.FlashMode = flashMode;

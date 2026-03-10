@@ -20,7 +20,7 @@ public partial class WirelessADB : SukiWindow
     private Size _lastSize = new Size(850, 455);
     private readonly ISukiDialogManager _thisDialogManager = new SukiDialogManager();
     private readonly ISukiToastManager _thisToastManager = new SukiToastManager();
-    private static IImage image;
+    private static IImage? image;
     private static string GetTranslation(string key) => FeaturesHelper.GetTranslation(key);
     public static Bitmap ConvertToBitmap(byte[] imageData)
     {
@@ -64,7 +64,7 @@ public partial class WirelessADB : SukiWindow
 
     private async void SetOH(object sender, RoutedEventArgs args)
     {
-        if ((bool)OHCheck.IsChecked)
+        if (OHCheck.IsChecked == true)
         {
             WTW.IsEnabled = false;
             PairingCode.IsEnabled = false;
@@ -85,13 +85,13 @@ public partial class WirelessADB : SukiWindow
 
     private async void WConnect(object sender, RoutedEventArgs args)
     {
-        string input = IPAndPort.Text;
-        string password = PairingCode.Text;
+        string input = IPAndPort.Text ?? string.Empty;
+        string password = PairingCode.Text ?? string.Empty;
         Connect.IsBusy = true;
         ConnectPanel.IsEnabled = false;
         if (!string.IsNullOrEmpty(input))
         {
-            if (!(bool)OHCheck.IsChecked)
+            if (OHCheck.IsChecked != true)
             {
                 string result = await CallExternalProgram.ADB($"pair {input} {password}");
                 if (result.Contains("Successfully paired to "))

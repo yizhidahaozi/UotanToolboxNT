@@ -26,7 +26,12 @@ public partial class SettingsView : UserControl
 
     private async void OpenCSVFile(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open File",
@@ -35,14 +40,19 @@ public partial class SettingsView : UserControl
         });
         if (files.Count >= 1)
         {
-            CsvPath.Text = files[0].TryGetLocalPath();
-            Global.BootPatchPath = CsvPath.Text;
+            CsvPath.Text = files[0].TryGetLocalPath() ?? string.Empty;
+            Global.BootPatchPath = CsvPath.Text ?? string.Empty;
         }
     }
 
     private async void SetBackupFolder(object sender, RoutedEventArgs args)
     {
-        TopLevel topLevel = TopLevel.GetTopLevel(this);
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyList<IStorageFolder> files = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = "Open Folder",
@@ -50,9 +60,10 @@ public partial class SettingsView : UserControl
         });
         if (files.Count >= 1)
         {
-            if (FileHelper.TestPermission(files[0].TryGetLocalPath()))
+            string? localPath = files[0].TryGetLocalPath();
+            if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
             {
-                BackPath.Text = files[0].TryGetLocalPath();
+                BackPath.Text = localPath;
             }
             else
             {
