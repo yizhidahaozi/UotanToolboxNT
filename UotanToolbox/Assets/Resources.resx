@@ -1771,4 +1771,10 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   <data name="Advancedflash_ChangeImg" xml:space="preserve">
     <value>Change image</value>
   </data>
+  <data name="Advancedflash_GetPkg" xml:space="preserve">
+    <value>Get Pkg</value>
+  </data>
+  <data name="Advancedflash_ReadInfo" xml:space="preserve">
+    <value>Read info</value>
+  </data>
 </root>

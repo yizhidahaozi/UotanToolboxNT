@@ -8,7 +8,7 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:assets="clr-namespace:UotanToolbox.Assets;assembly=UotanToolbox"
-			 d:DesignHeight="800"
+			 d:DesignHeight="1150"
 			 d:DesignWidth="1024"
 			 mc:Ignorable="d"
 			 x:DataType="advancedflash:AdvancedflashViewModel">
@@ -17,22 +17,28 @@
 		<StackPanel Name="Modifypartition" Margin="15">
 			<suki:GlassCard Classes="Card" Margin="10 15 10 10" Height="80" Width="960">
 				<StackPanel Orientation="Horizontal" Spacing="0">
-					<TextBlock Margin="10 0 0 0"
+					<TextBlock Margin="0"
 							   VerticalAlignment="Center"
 							   FontSize="15"
 							   Width="100"
 							   Text="{x:Static assets:Resources.Advancedflash_FileOrFolder}" />
-					<TextBox Width="600" Name="File"
+					<TextBox Width="560" Name="File"
 							 Text="" Watermark="{x:Static assets:Resources.Advancedflash_SelectFile}"
 							 theme:TextBoxExtensions.AddDeleteButton="True"/>
-					<Button Width="100"
+					<Button Width="80" Padding="0"
+							Click="OpenFile"
 							HorizontalAlignment="Left">
 						<TextBlock Text="{x:Static assets:Resources.Advancedflash_ChooseFile}" />
 					</Button>
-					<Button Margin="5 0 0 0" Width="100"
-
+					<Button Margin="5 0 0 0" Width="80"
+							Click="OpenFolder" Padding="0"
 							HorizontalAlignment="Left">
 						<TextBlock Text="{x:Static assets:Resources.Advancedflash_ChooseFolder}" />
+					</Button>
+					<Button Margin="5 0 0 0" Width="90"
+							Click="OpenUrl" Padding="0"
+							HorizontalAlignment="Left">
+						<TextBlock Text="{x:Static assets:Resources.Advancedflash_GetPkg}" />
 					</Button>
 				</StackPanel>
 			</suki:GlassCard>
@@ -41,7 +47,7 @@
 					<suki:GlassCard Classes="Card" Margin="10 10" Height="645" Width="668">
 						<StackPanel Margin="0 -10 0 0">
 							<StackPanel Orientation="Horizontal" Width="625">
-								<CheckBox Name="SelectAll" Width="95" Content="{x:Static assets:Resources.Advancedflash_SelectAll}"/>
+								<CheckBox Name="SelectAll" Width="95" Content="{x:Static assets:Resources.Advancedflash_SelectAll}" IsCheckedChanged="SetAll"/>
 								<TextBox Name="SearchBox"
 										 Margin="125 0 0 0"
 										 Width="200"
@@ -64,7 +70,13 @@
 										  AutoGenerateColumns="False"
 										  CanUserResizeColumns="True">
 									<DataGrid.Columns>
-										<DataGridCheckBoxColumn Binding="{Binding Select}" Header="{x:Static assets:Resources.Advancedflash_Select}"/>
+										<DataGridTemplateColumn IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Select}">
+											<DataGridTemplateColumn.CellTemplate>
+												<DataTemplate>
+													<CheckBox IsChecked="{Binding Select}" IsEnabled="{Binding SelectDis}" IsCheckedChanged="Selected"/>
+												</DataTemplate>
+											</DataGridTemplateColumn.CellTemplate>
+										</DataGridTemplateColumn>
 										<DataGridTextColumn Binding="{Binding Command}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Command}"/>
 										<DataGridTextColumn Binding="{Binding Size}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Size}"/>
 										<DataGridTextColumn Binding="{Binding Name}" IsReadOnly="True" Header="{x:Static assets:Resources.Advancedflash_Tag}"/>
@@ -87,13 +99,20 @@
 				</StackPanel>
 				<StackPanel>
 					<StackPanel Orientation="Vertical">
-						<suki:GlassCard Classes="Card" Margin="15 10 0 10" Width="265" Height="245">
+						<suki:GlassCard Classes="Card" Margin="15 10 0 10" Width="265" Height="285">
 							<StackPanel Orientation="Vertical">
 								<TextBlock HorizontalAlignment="Left"
 										   VerticalAlignment="Top"
 										   FontWeight="DemiBold"
 										   Text="{x:Static assets:Resources.Advancedflash_Basic}" />
-								<StackPanel Margin="0 10 0 0" HorizontalAlignment="Center" Spacing="10">
+								<StackPanel Margin="0 5 0 0" HorizontalAlignment="Center" Spacing="10">
+									<Button Width="200"
+											Name="ReadInof"
+
+											HorizontalAlignment="Left"
+											Padding="8">
+										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_ReadInfo}"/>
+									</Button>
 									<Button Width="200"
 											Name="FlashSelect"
 
@@ -134,16 +153,16 @@
 								</StackPanel>
 							</StackPanel>
 						</suki:GlassCard>
-						<suki:GlassCard Classes="Card" Margin="15 15 0 10" Width="265" Height="170">
+						<suki:GlassCard Classes="Card" Margin="15 10 0 10" Width="265" Height="161.5">
 							<StackPanel Orientation="Vertical">
 								<TextBlock HorizontalAlignment="Left"
 										   VerticalAlignment="Top"
 										   FontWeight="DemiBold"
 										   Text="{x:Static assets:Resources.Advancedflash_ExtractImg}" />
-								<StackPanel Margin="0 10 0 0" HorizontalAlignment="Center" Spacing="10">
+								<StackPanel Margin="0 5 0 0" HorizontalAlignment="Center" Spacing="10">
 									<Button Width="200"
 											Name="ExtractSelect"
-
+											Click="Extract"
 											HorizontalAlignment="Left"
 											Padding="8">
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_ExtractSelected}" />
@@ -158,17 +177,17 @@
 								</StackPanel>
 							</StackPanel>
 						</suki:GlassCard>
-						<suki:GlassCard Classes="Card" Margin="15 15 0 10" Width="265" Height="180">
+						<suki:GlassCard Classes="Card" Margin="15 10 0 10" Width="265" Height="157">
 							<StackPanel Orientation="Vertical">
 								<TextBlock HorizontalAlignment="Left"
 										   VerticalAlignment="Top"
 										   FontWeight="DemiBold"
 										   Text="{x:Static assets:Resources.Advancedflash_ExportScript}" />
-								<StackPanel Margin="0 10 0 0" HorizontalAlignment="Center" Spacing="10">
+								<StackPanel Margin="0 0 0 0" HorizontalAlignment="Center" Spacing="10">
 									<ComboBox Name="ExportScr" Width="210"/>
 									<Button Width="200"
 											Name="ToScr"
-											Margin="5 0 0 0"
+											Margin="5 -5 0 0"
 
 											HorizontalAlignment="Left"
 											Padding="8">
@@ -180,6 +199,15 @@
 					</StackPanel>
 				</StackPanel>
 			</StackPanel>
+			<suki:GlassCard Width="960"
+							Height="340"
+			                Margin="10"
+			                VerticalAlignment="Top">
+				<Grid VerticalAlignment="Top">
+					<TextBox Name="AdvancedflashLog" Watermark="{x:Static assets:Resources.Common_Log}" Margin="0,0,0,0" Height="300" AcceptsReturn="True" IsReadOnly="True"
+							 VerticalContentAlignment="Top" TextWrapping="Wrap" BorderThickness="1" CornerRadius="10" />
+				</Grid>
+			</suki:GlassCard>
 		</StackPanel>
 	</ScrollViewer>
 </UserControl>

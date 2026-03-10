@@ -39,6 +39,9 @@ public partial class FalshPartModel : ObservableObject
     private bool select;
 
     [ObservableProperty]
+    private bool selectDis = true;
+
+    [ObservableProperty]
     private string command;
 
     [ObservableProperty]

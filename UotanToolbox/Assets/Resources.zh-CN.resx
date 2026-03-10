@@ -1771,4 +1771,10 @@ ADB下填写序号，一次一个！</value>
   <data name="Advancedflash_ChangeImg" xml:space="preserve">
     <value>点击更换镜像</value>
   </data>
+  <data name="Advancedflash_GetPkg" xml:space="preserve">
+    <value>获取刷机包</value>
+  </data>
+  <data name="Advancedflash_ReadInfo" xml:space="preserve">
+    <value>读取信息</value>
+  </data>
 </root>

@@ -232,11 +232,29 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Get Pkg 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_GetPkg {
+            get {
+                return ResourceManager.GetString("Advancedflash_GetPkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Advanced flash 的本地化字符串。
         /// </summary>
         public static string Advancedflash_Name {
             get {
                 return ResourceManager.GetString("Advancedflash_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Read info 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ReadInfo {
+            get {
+                return ResourceManager.GetString("Advancedflash_ReadInfo", resourceCulture);
             }
         }
         
