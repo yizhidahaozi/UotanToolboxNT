@@ -11,6 +11,37 @@ namespace UotanToolbox.Common
     internal class FeaturesHelper
     {
         private static readonly ResourceManager resMgr = new ResourceManager("UotanToolbox.Assets.Resources", typeof(App).Assembly);
+
+        private static string BuildAdbArgs(string deviceId, string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId) || cmd.TrimStart().StartsWith("-s ", StringComparison.Ordinal))
+            {
+                return cmd;
+            }
+
+            return $"-s {deviceId} {cmd}";
+        }
+
+        private static string BuildFastbootArgs(string deviceId, string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId) || cmd.TrimStart().StartsWith("-s ", StringComparison.Ordinal))
+            {
+                return cmd;
+            }
+
+            return $"-s {deviceId} {cmd}";
+        }
+
+        private static string BuildHdcArgs(string deviceId, string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId) || cmd.TrimStart().StartsWith("-t ", StringComparison.Ordinal))
+            {
+                return cmd;
+            }
+
+            return $"-t {deviceId} {cmd}";
+        }
+
         public static string GetTranslation(string key)
         {
             CultureInfo CurCulture = Settings.Default.Language is not null and not ""
@@ -38,8 +69,7 @@ namespace UotanToolbox.Common
                 }
             }
             // fallback to raw command; omit -s when no device is provided
-            string args = string.IsNullOrEmpty(deviceId) ? cmd : $"-s {deviceId} {cmd}";
-            return await CallExternalProgram.ADB(args);
+            return await CallExternalProgram.ADB(BuildAdbArgs(deviceId, cmd));
         }
 
         public static async Task<string> FastbootCmd(string deviceId, string cmd)
@@ -52,8 +82,7 @@ namespace UotanToolbox.Common
                     return await Global.DeviceManager.ExecuteAsync(dev, cmd);
                 }
             }
-            string args = string.IsNullOrEmpty(deviceId) ? cmd : $"-s {deviceId} {cmd}";
-            return await CallExternalProgram.Fastboot(args);
+            return await CallExternalProgram.Fastboot(BuildFastbootArgs(deviceId, cmd));
         }
 
         public static async Task<string> HdcCmd(string deviceId, string cmd)
@@ -66,8 +95,7 @@ namespace UotanToolbox.Common
                     return await Global.DeviceManager.ExecuteAsync(dev, cmd);
                 }
             }
-            string args = string.IsNullOrEmpty(deviceId) ? cmd : $"-t {deviceId} {cmd}";
-            return await CallExternalProgram.HDC(args);
+            return await CallExternalProgram.HDC(BuildHdcArgs(deviceId, cmd));
         }
 
         public static async void PushMakefs(string device)

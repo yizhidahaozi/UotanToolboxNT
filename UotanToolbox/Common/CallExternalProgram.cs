@@ -2,12 +2,63 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace UotanToolbox.Common
 {
     internal class CallExternalProgram
     {
+        private static async Task<string> RunProcessAsync(ProcessStartInfo startInfo)
+        {
+            StringBuilder outputBuilder = new StringBuilder();
+            object appendLock = new object();
+            TaskCompletionSource<bool> standardOutputCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<bool> standardErrorCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using Process process = new Process
+            {
+                StartInfo = startInfo,
+                EnableRaisingEvents = true
+            };
+
+            process.OutputDataReceived += (_, args) =>
+            {
+                if (args.Data == null)
+                {
+                    standardOutputCompleted.TrySetResult(true);
+                    return;
+                }
+
+                lock (appendLock)
+                {
+                    _ = outputBuilder.AppendLine(args.Data);
+                }
+            };
+
+            process.ErrorDataReceived += (_, args) =>
+            {
+                if (args.Data == null)
+                {
+                    standardErrorCompleted.TrySetResult(true);
+                    return;
+                }
+
+                lock (appendLock)
+                {
+                    _ = outputBuilder.AppendLine(args.Data);
+                }
+            };
+
+            _ = process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            await Task.WhenAll(process.WaitForExitAsync(), standardOutputCompleted.Task, standardErrorCompleted.Task);
+
+            return outputBuilder.ToString().TrimEnd();
+        }
+
         public static async Task<string> ADB(string adbshell)
         {
             string cmd = Path.Combine(Global.bin_path, "platform-tools", "adb");
@@ -20,16 +71,7 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            using Process adb = new Process();
-            adb.StartInfo = adbexe;
-            _ = adb.Start();
-            string output = await adb.StandardOutput.ReadToEndAsync();
-            if (output == "")
-            {
-                output = await adb.StandardError.ReadToEndAsync();
-            }
-            adb.WaitForExit();
-            return output;
+            return await RunProcessAsync(adbexe);
         }
 
         public static async Task<string> HDC(string hdcshell)
@@ -44,16 +86,7 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            using Process hdc = new Process();
-            hdc.StartInfo = hdcexe;
-            hdc.Start();
-            string output = await hdc.StandardOutput.ReadToEndAsync();
-            if (output == "")
-            {
-                output = await hdc.StandardError.ReadToEndAsync();
-            }
-            hdc.WaitForExit();
-            return output;
+            return await RunProcessAsync(hdcexe);
         }
 
         public static async Task<string> Fastboot(string fbshell)
@@ -69,16 +102,7 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            using Process fb = new Process();
-            fb.StartInfo = fastboot;
-            _ = fb.Start();
-            string output = await fb.StandardError.ReadToEndAsync();
-            if (output == "")
-            {
-                output = await fb.StandardOutput.ReadToEndAsync();
-            }
-            fb.WaitForExit();
-            return output;
+            return await RunProcessAsync(fastboot);
         }
 
         public static async Task<string> Devcon(string shell)
