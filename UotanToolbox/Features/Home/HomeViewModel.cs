@@ -152,7 +152,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         // periodic background scan only; UI updates are handled by device events
         while (true)
         {
-            if (Global.DeviceManager != null)
+            // pause polling while flashing/critical operations are running
+            if (Global.checkdevice && Global.DeviceManager != null)
             {
                 await Global.DeviceManager.ScanAsync();
             }
