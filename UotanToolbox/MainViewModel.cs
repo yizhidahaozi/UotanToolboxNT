@@ -39,7 +39,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _animationsEnabled;
     [ObservableProperty] private MainPageBase _activePage = null!;
     [ObservableProperty] private SukiBackgroundStyle _backgroundStyle = SukiBackgroundStyle.Gradient;
-    [ObservableProperty] private string _customShaderFile = string.Empty;
+    [ObservableProperty] private string _customShaderFile;
     [ObservableProperty] private bool _transitionsEnabled;
     [ObservableProperty] private double _transitionTime;
 
