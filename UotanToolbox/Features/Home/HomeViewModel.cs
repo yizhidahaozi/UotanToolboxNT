@@ -173,6 +173,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     private async void DeviceManager_DeviceRemoved(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
         // compute next selectable item before refreshing list
+        CommonDevicesList = true;
         var oldList = SimpleContent?.ToList() ?? new List<string>();
         var removedIndex = oldList.IndexOf(e.Device.Id);
         var removedWasSelected = SelectedSimpleContent == e.Device.Id;
@@ -187,7 +188,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
         // background polling only refreshes details when the active selection is no longer available
         _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: true, rescan: false, refreshDetails: removedWasSelected);
-
+        CommonDevicesList = false;
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceDisconnected"), e.Device.Id))

@@ -179,7 +179,7 @@
 							</StackPanel>
 						</suki:GlassCard>
 						<suki:GlassCard Classes="Card" Margin="15 10 0 10" Width="265" Height="157">
-							<StackPanel Orientation="Vertical">
+							<!--<StackPanel Orientation="Vertical">
 								<TextBlock HorizontalAlignment="Left"
 										   VerticalAlignment="Top"
 										   FontWeight="DemiBold"
@@ -195,6 +195,12 @@
 										<TextBlock FontSize="15" Text="{x:Static assets:Resources.Advancedflash_ExportScript}" />
 									</Button>
 								</StackPanel>
+							</StackPanel>-->
+							<StackPanel Orientation="Vertical">
+								<TextBlock HorizontalAlignment="Center"
+										   Margin="0 45 0 0"
+										   FontWeight="DemiBold"
+										   Text="↓↓↓日志在下方喵~↓↓↓" />
 							</StackPanel>
 						</suki:GlassCard>
 					</StackPanel>
