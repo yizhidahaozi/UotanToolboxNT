@@ -318,7 +318,7 @@ public partial class WiredflashView : UserControl
                                     Global.Bootinfo = await ImageDetect.Boot_Detect($"{imgpath}/{fbflashparts[i]}.img");
                                     Global.Zipinfo = await PatchDetect.Patch_Detect(Global.MagiskAPKPath);
                                     string newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
-                                    await Fastboot($"-s {Global.thisdevice} flash boot {newboot}");
+                                    await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} {newboot}");
                                 }
                                 else if (fbflashparts[i].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                 {
