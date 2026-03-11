@@ -9,6 +9,62 @@ namespace UotanToolbox.Common
 {
     internal class CallExternalProgram
     {
+        private static async Task ReadStreamAsync(StreamReader reader, StringBuilder capture, Action<string>? outputCallback)
+        {
+            char[] buffer = new char[1024];
+            int read;
+            while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                string chunk = new string(buffer, 0, read);
+                _ = capture.Append(chunk);
+                outputCallback?.Invoke(chunk);
+            }
+        }
+
+        private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
+        {
+            using MemoryStream buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            return buffer.ToArray();
+        }
+
+        private static async Task<string> RunProcessStreamingAsync(ProcessStartInfo startInfo, Action<string>? outputCallback)
+        {
+            using Process process = new Process
+            {
+                StartInfo = startInfo,
+                EnableRaisingEvents = true
+            };
+
+            _ = process.Start();
+
+            StringBuilder standardOutput = new StringBuilder();
+            StringBuilder standardError = new StringBuilder();
+
+            Task readOutputTask = ReadStreamAsync(process.StandardOutput, standardOutput, outputCallback);
+            Task readErrorTask = ReadStreamAsync(process.StandardError, standardError, outputCallback);
+
+            await Task.WhenAll(process.WaitForExitAsync(), readOutputTask, readErrorTask);
+
+            StringBuilder outputBuilder = new StringBuilder();
+            if (standardOutput.Length > 0)
+            {
+                _ = outputBuilder.Append(standardOutput.ToString().TrimEnd());
+            }
+
+            if (standardError.Length > 0)
+            {
+                if (outputBuilder.Length > 0)
+                {
+                    _ = outputBuilder.AppendLine();
+                }
+
+                _ = outputBuilder.Append(standardError.ToString().TrimEnd());
+            }
+
+            return outputBuilder.ToString().TrimEnd();
+        }
+
         private static async Task<string> RunProcessAsync(ProcessStartInfo startInfo)
         {
             using Process process = new Process
@@ -19,12 +75,17 @@ namespace UotanToolbox.Common
 
             _ = process.Start();
 
-            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
-            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+            Task<byte[]> standardOutputTask = ReadAllBytesAsync(process.StandardOutput.BaseStream);
+            Task<byte[]> standardErrorTask = ReadAllBytesAsync(process.StandardError.BaseStream);
 
-            await process.WaitForExitAsync();
-            string standardOutput = await standardOutputTask;
-            string standardError = await standardErrorTask;
+            await Task.WhenAll(process.WaitForExitAsync(), standardOutputTask, standardErrorTask);
+            byte[] standardOutputBytes = await standardOutputTask;
+            byte[] standardErrorBytes = await standardErrorTask;
+
+            string standardOutput = startInfo.StandardOutputEncoding?.GetString(standardOutputBytes)
+                ?? Encoding.UTF8.GetString(standardOutputBytes);
+            string standardError = startInfo.StandardErrorEncoding?.GetString(standardErrorBytes)
+                ?? Encoding.UTF8.GetString(standardErrorBytes);
 
             StringBuilder outputBuilder = new StringBuilder();
             if (!string.IsNullOrWhiteSpace(standardOutput))
@@ -45,7 +106,7 @@ namespace UotanToolbox.Common
             return outputBuilder.ToString().TrimEnd();
         }
 
-        public static async Task<string> ADB(string adbshell)
+        public static async Task<string> ADB(string adbshell, Action<string>? outputCallback = null)
         {
             string cmd = Path.Combine(Global.bin_path, "platform-tools", "adb");
             ProcessStartInfo adbexe = new ProcessStartInfo(cmd, adbshell)
@@ -57,10 +118,12 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            return await RunProcessAsync(adbexe);
+            return outputCallback == null
+                ? await RunProcessAsync(adbexe)
+                : await RunProcessStreamingAsync(adbexe, outputCallback);
         }
 
-        public static async Task<string> HDC(string hdcshell)
+        public static async Task<string> HDC(string hdcshell, Action<string>? outputCallback = null)
         {
             string cmd = Path.Combine(Global.bin_path, "toolchains", "hdc");
             ProcessStartInfo hdcexe = new ProcessStartInfo(cmd, hdcshell)
@@ -72,10 +135,12 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            return await RunProcessAsync(hdcexe);
+            return outputCallback == null
+                ? await RunProcessAsync(hdcexe)
+                : await RunProcessStreamingAsync(hdcexe, outputCallback);
         }
 
-        public static async Task<string> Fastboot(string fbshell)
+        public static async Task<string> Fastboot(string fbshell, Action<string>? outputCallback = null)
         {
             // choose binary name based on native flag from settings
             string cmd = Global.FastbootPath;
@@ -88,7 +153,9 @@ namespace UotanToolbox.Common
                 StandardOutputEncoding = System.Text.Encoding.UTF8,
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
-            return await RunProcessAsync(fastboot);
+            return outputCallback == null
+                ? await RunProcessAsync(fastboot)
+                : await RunProcessStreamingAsync(fastboot, outputCallback);
         }
 
         public static async Task<string> Devcon(string shell)

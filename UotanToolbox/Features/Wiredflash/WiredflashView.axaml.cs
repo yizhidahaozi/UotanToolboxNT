@@ -37,33 +37,22 @@ public partial class WiredflashView : UserControl
 
     private async Task AppendCommandOutputAsync(string commandOutput)
     {
-        if (string.IsNullOrWhiteSpace(commandOutput))
+        if (commandOutput == null)
         {
             return;
         }
 
-        string normalizedOutput = commandOutput.Replace("\r\n", "\n").TrimEnd();
-        if (string.IsNullOrWhiteSpace(normalizedOutput))
-        {
-            return;
-        }
+        string normalizedOutput = commandOutput
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Replace("\0", string.Empty);
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (!string.IsNullOrWhiteSpace(WiredflashLog.Text) && !WiredflashLog.Text.EndsWith('\n'))
-            {
-                WiredflashLog.Text += Environment.NewLine;
-            }
-
-            WiredflashLog.Text += normalizedOutput + Environment.NewLine;
+            WiredflashLog.Text += normalizedOutput;
             WiredflashLog.CaretIndex = WiredflashLog.Text.Length;
 
-            if (!string.IsNullOrWhiteSpace(output) && !output.EndsWith('\n'))
-            {
-                output += Environment.NewLine;
-            }
-
-            output += normalizedOutput + Environment.NewLine;
+            output += normalizedOutput;
         });
     }
 
@@ -76,14 +65,12 @@ public partial class WiredflashView : UserControl
             var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Fastboot);
             if (dev != null)
             {
-                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, cmd);
-                await AppendCommandOutputAsync(commandOutput);
+                commandOutput = await Global.DeviceManager.ExecuteStreamingAsync(dev, cmd, chunk => _ = AppendCommandOutputAsync(chunk));
                 return commandOutput;
             }
         }
 
-        commandOutput = await FeaturesHelper.FastbootCmd(Global.thisdevice, cmd);
-        await AppendCommandOutputAsync(commandOutput);
+        commandOutput = await CallExternalProgram.Fastboot(cmd, chunk => _ = AppendCommandOutputAsync(chunk));
         return commandOutput;
     }
 
@@ -96,14 +83,12 @@ public partial class WiredflashView : UserControl
             var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Adb);
             if (dev != null)
             {
-                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, cmd);
-                await AppendCommandOutputAsync(commandOutput);
+                commandOutput = await Global.DeviceManager.ExecuteStreamingAsync(dev, cmd, chunk => _ = AppendCommandOutputAsync(chunk));
                 return commandOutput;
             }
         }
 
-        commandOutput = await FeaturesHelper.AdbCmd(Global.thisdevice, cmd);
-        await AppendCommandOutputAsync(commandOutput);
+        commandOutput = await CallExternalProgram.ADB(cmd, chunk => _ = AppendCommandOutputAsync(chunk));
         return commandOutput;
     }
 

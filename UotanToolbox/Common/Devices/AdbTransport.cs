@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace UotanToolbox.Common.Devices
 {
@@ -41,12 +42,12 @@ namespace UotanToolbox.Common.Devices
             return result;
         }
 
-        public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default)
+        public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default, Action<string>? outputCallback = null)
         {
             string args = command.TrimStart().StartsWith("-s ", System.StringComparison.Ordinal)
                 ? command
                 : $"-s {device.Id} {command}";
-            return CallExternalProgram.ADB(args);
+            return CallExternalProgram.ADB(args, outputCallback);
         }
 
         public Task<bool> ClaimAsync(DeviceInfo device)

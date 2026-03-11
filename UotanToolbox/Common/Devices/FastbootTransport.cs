@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace UotanToolbox.Common.Devices
 {
@@ -16,12 +17,12 @@ namespace UotanToolbox.Common.Devices
             return ids.Select(id => new DeviceInfo(id, TransportType.Fastboot));
         }
 
-        public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default)
+        public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default, Action<string>? outputCallback = null)
         {
             string args = command.TrimStart().StartsWith("-s ", System.StringComparison.Ordinal)
                 ? command
                 : $"-s {device.Id} {command}";
-            return CallExternalProgram.Fastboot(args);
+            return CallExternalProgram.Fastboot(args, outputCallback);
         }
 
         public Task<bool> ClaimAsync(DeviceInfo device)

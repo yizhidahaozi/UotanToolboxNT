@@ -134,6 +134,9 @@ namespace UotanToolbox.Common.Devices
         public async Task<string> ExecuteAsync(DeviceInfo device, string cmd) =>
             await _transports.First(t => t.Type == device.Transport).RunAsync(device, cmd);
 
+        public async Task<string> ExecuteStreamingAsync(DeviceInfo device, string cmd, Action<string> outputCallback) =>
+            await _transports.First(t => t.Type == device.Transport).RunAsync(device, cmd, outputCallback: outputCallback);
+
         public Task<bool> ClaimAsync(DeviceInfo d) =>
             _transports.First(t => t.Type == d.Transport).ClaimAsync(d);
 

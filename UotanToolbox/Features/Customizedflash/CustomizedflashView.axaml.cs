@@ -28,45 +28,36 @@ public partial class CustomizedflashView : UserControl
 
     private async Task AppendFastbootOutputAsync(string commandOutput)
     {
-        if (string.IsNullOrWhiteSpace(commandOutput))
+        if (commandOutput == null)
         {
             return;
         }
 
-        string normalizedOutput = commandOutput.Replace("\r\n", "\n").TrimEnd();
-        if (string.IsNullOrWhiteSpace(normalizedOutput))
-        {
-            return;
-        }
+        string normalizedOutput = commandOutput
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Replace("\0", string.Empty);
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (!string.IsNullOrWhiteSpace(CustomizedflashLog.Text) && !CustomizedflashLog.Text.EndsWith('\n'))
-            {
-                CustomizedflashLog.Text += Environment.NewLine;
-            }
-
-            CustomizedflashLog.Text += normalizedOutput + Environment.NewLine;
+            CustomizedflashLog.Text += normalizedOutput;
             CustomizedflashLog.CaretIndex = CustomizedflashLog.Text.Length;
         });
     }
 
     public async Task Fastboot(string fbshell)
     {
-        string commandOutput;
         if (Global.DeviceManager != null)
         {
             var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Fastboot);
             if (dev != null)
             {
-                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, fbshell);
-                await AppendFastbootOutputAsync(commandOutput);
+                _ = await Global.DeviceManager.ExecuteStreamingAsync(dev, fbshell, chunk => _ = AppendFastbootOutputAsync(chunk));
                 return;
             }
         }
 
-        commandOutput = await FeaturesHelper.FastbootCmd(Global.thisdevice, fbshell);
-        await AppendFastbootOutputAsync(commandOutput);
+        _ = await CallExternalProgram.Fastboot(fbshell, chunk => _ = AppendFastbootOutputAsync(chunk));
     }
 
     private async void OpenSystemFile(object sender, RoutedEventArgs args)
