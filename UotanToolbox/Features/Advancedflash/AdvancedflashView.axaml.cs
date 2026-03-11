@@ -46,6 +46,8 @@ public partial class AdvancedflashView : UserControl
     public AvaloniaList<string> ScriptList = [".bat", ".sh", ".txt"];
     private LpMetadata? _metadata;
     private ParsedFileType _parsedFileType = ParsedFileType.Unknown;
+    private readonly string fastboot_log_path = Path.Combine(Global.log_path, "fastboot.txt");
+    private string output = "";
 
     public AdvancedflashView()
     {
@@ -87,6 +89,8 @@ public partial class AdvancedflashView : UserControl
         {
             AdvancedflashLog.Text += normalizedOutput;
             AdvancedflashLog.CaretIndex = AdvancedflashLog.Text.Length;
+
+            output += normalizedOutput;
         });
     }
 
@@ -333,7 +337,10 @@ public partial class AdvancedflashView : UserControl
             {
                 AdvancedflashLog.Text += $"Error: {ex.Message}";
             }
-
+            finally
+            {
+                BusyFlash.IsBusy = false;
+            }
             BusyFlash.IsBusy = false;
         }
     }
@@ -563,6 +570,10 @@ public partial class AdvancedflashView : UserControl
         {
             AdvancedflashLog.Text += $"Error: {ex.Message}";
         }
+        finally
+        {
+            BusyFlash.IsBusy = false;
+        }
         BusyFlash.IsBusy = false;
     }
 
@@ -626,10 +637,11 @@ public partial class AdvancedflashView : UserControl
                 if (System.IO.File.Exists(outPath))
                 {
                     item.FileName = Path.GetFileName(outPath);
+                    item.FullFilePath = outPath;
                     successCount++;
                 }
             }
-
+            FileHelper.OpenFolder(Path.Combine(outputDir));
             AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{selectedParts.Count} -> {outputDir}";
         }
         catch (Exception ex)
@@ -1023,7 +1035,148 @@ public partial class AdvancedflashView : UserControl
 
     private async void FlashSelect(object sender, RoutedEventArgs args)
     {
+        if (string.IsNullOrWhiteSpace(File.Text))
+        {
+            AdvancedflashLog.Text += "\nInvalid selected file path.";
+            return;
+        }
 
+        string path = File.Text;
+        BusyFlash.IsBusy = true;
+        FlashSelectBut.IsEnabled = false;
+
+        var extension = Path.GetExtension(path);
+        if (ScriptList.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            _parsedFileType = ParsedFileType.Script;
+            AdvancedflashLog.Text += $"\nSkip script type: {Path.GetFileName(path)}";
+            //检测后的脚本逻辑写这里
+            var vm = GetViewModel();
+            foreach (var item in vm.FalshPartModel)
+            {
+                if (item.Select == true)
+                {
+                    await Fastboot($"-s {Global.thisdevice} flash {item.Name} {item.FullFilePath}");
+                    FileHelper.Write(fastboot_log_path, output);
+                    if (output.Contains("FAILED") || output.Contains("error"))
+                    {
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
+                        BusyFlash.IsBusy = false;
+                        FlashSelectBut.IsEnabled = true;
+                        return;
+                    }
+                }
+            }
+            Global.MainDialogManager.CreateDialog()
+                            .WithTitle(GetTranslation("Common_Succ"))
+                            .WithContent(GetTranslation("Wiredflash_ROMFlash"))
+                            .OfType(NotificationType.Success)
+                            .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => await Fastboot($"-s {Global.thisdevice} reboot"), true)
+                            .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
+                            .TryShow();
+            BusyFlash.IsBusy = false;
+            FlashSelectBut.IsEnabled = true;
+            return;
+        }
+
+        try
+        {
+            var sourcePath = File.Text ?? string.Empty;
+            var isUrl = Uri.IsWellFormedUriString(sourcePath, UriKind.Absolute);
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                AdvancedflashLog.Text += "\nInvalid image path.";
+                return;
+            }
+
+            if (!isUrl && !System.IO.File.Exists(sourcePath))
+            {
+                AdvancedflashLog.Text += "\nInvalid image path.";
+                return;
+            }
+
+            if (isUrl && _parsedFileType != ParsedFileType.PayloadUrl)
+            {
+                AdvancedflashLog.Text += "\nCurrent URL is not in payload_url mode.";
+                return;
+            }
+
+            var vm = GetViewModel();
+            var selectedParts = vm.FalshPartModel.Where(x => x.Select && string.IsNullOrWhiteSpace(x.FullFilePath)).ToList();
+            if (selectedParts.Count == 0)
+            {
+                AdvancedflashLog.Text += "\nNo partition selected.";
+                return;
+            }
+
+            var outputDir = GetUnpackOutputDir(sourcePath, isUrl);
+            Directory.CreateDirectory(outputDir);
+
+            switch (_parsedFileType)
+            {
+                case ParsedFileType.Payload:
+                    await ExtractPayloadSelectedAsync(sourcePath, outputDir, selectedParts);
+                    break;
+                case ParsedFileType.Super:
+                    await ExtractSuperSelectedAsync(sourcePath, outputDir, selectedParts);
+                    break;
+                case ParsedFileType.PayloadUrl:
+                    await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts);
+                    break;
+                default:
+                    AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
+                    return;
+            }
+
+            var successCount = 0;
+            foreach (var item in selectedParts)
+            {
+                var outPath = Path.Combine(outputDir, $"{item.Name}.img");
+                if (System.IO.File.Exists(outPath))
+                {
+                    item.FileName = Path.GetFileName(outPath);
+                    item.FullFilePath = outPath;
+                    successCount++;
+                }
+            }
+            AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{selectedParts.Count} -> {outputDir}";
+
+            foreach (var item in vm.FalshPartModel)
+            {
+                if (item.Select == true)
+                {
+                    await Fastboot($"-s {Global.thisdevice} flash {item.Name} {item.FullFilePath}");
+                    FileHelper.Write(fastboot_log_path, output);
+                    if (output.Contains("FAILED") || output.Contains("error"))
+                    {
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
+                        BusyFlash.IsBusy = false;
+                        FlashSelectBut.IsEnabled = true;
+                        FileHelper.OpenFolder(Path.Combine(outputDir));
+                        return;
+                    }
+                }
+            }
+            Global.MainDialogManager.CreateDialog()
+                            .WithTitle(GetTranslation("Common_Succ"))
+                            .WithContent(GetTranslation("Wiredflash_ROMFlash"))
+                            .OfType(NotificationType.Success)
+                            .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => await Fastboot($"-s {Global.thisdevice} reboot"), true)
+                            .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
+                            .TryShow();
+            FileHelper.OpenFolder(Path.Combine(outputDir));
+        }
+        catch (Exception ex)
+        {
+            AdvancedflashLog.Text += $"Error: {ex.Message}";
+        }
+        finally
+        {
+            BusyFlash.IsBusy = false;
+            FlashSelectBut.IsEnabled = true;
+        }
+
+        BusyFlash.IsBusy = false;
     }
 
     private async void EraseSelect(object sender, RoutedEventArgs args)
