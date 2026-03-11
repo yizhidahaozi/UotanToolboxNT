@@ -640,6 +640,18 @@ public partial class CustomizedflashView : UserControl
                                         .OfType(NotificationType.Warning)
                                         .WithActionButton(GetTranslation("Customizedflash_SelectVbmeta"), async _ =>
                                         {
+                                            string deviceId = Global.thisdevice;
+                                            if (string.IsNullOrWhiteSpace(deviceId))
+                                            {
+                                                Global.MainDialogManager.CreateDialog()
+                                                                    .WithTitle(GetTranslation("Common_Error"))
+                                                                    .OfType(NotificationType.Error)
+                                                                    .WithContent(GetTranslation("Common_NotConnected"))
+                                                                    .Dismiss().ByClickingBackground()
+                                                                    .TryShow();
+                                                return;
+                                            }
+
                                             TopLevel topLevel = TopLevel.GetTopLevel(this);
                                             System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                                             {
@@ -649,18 +661,46 @@ public partial class CustomizedflashView : UserControl
                                             });
                                             if (files.Count >= 1)
                                             {
-                                                for (int i = 0; i < files.Count; i++)
+                                                Global.checkdevice = false;
+                                                try
                                                 {
-                                                    await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {Path.GetFileNameWithoutExtension(files[i].Name)} \"{files[i].TryGetLocalPath()}\"");
+                                                    for (int i = 0; i < files.Count; i++)
+                                                    {
+                                                        await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash {Path.GetFileNameWithoutExtension(files[i].Name)} \"{files[i].TryGetLocalPath()}\"");
+                                                    }
+                                                }
+                                                finally
+                                                {
+                                                    Global.checkdevice = true;
                                                 }
                                             }
                                         }, true)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Continue"), async _ =>
                                         {
+                                            string deviceId = Global.thisdevice;
+                                            if (string.IsNullOrWhiteSpace(deviceId))
+                                            {
+                                                Global.MainDialogManager.CreateDialog()
+                                                                    .WithTitle(GetTranslation("Common_Error"))
+                                                                    .OfType(NotificationType.Error)
+                                                                    .WithContent(GetTranslation("Common_NotConnected"))
+                                                                    .Dismiss().ByClickingBackground()
+                                                                    .TryShow();
+                                                return;
+                                            }
+
                                             CustomizedflashLog.Text = "";
-                                            await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash vbmeta \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
-                                            await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash vbmeta_system \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
-                                            await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash vbmeta_vendor \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
+                                            Global.checkdevice = false;
+                                            try
+                                            {
+                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
+                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta_system \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
+                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta_vendor \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
+                                            }
+                                            finally
+                                            {
+                                                Global.checkdevice = true;
+                                            }
                                         }, true)
                                         .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
                                         .TryShow();
