@@ -38,6 +38,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
     [ObservableProperty] private MainPageBase _activePage = null!;
     [ObservableProperty] private bool _windowLocked = false;
     private bool _isApplyingSelection;
+    private bool _pendingStartupAutoRefresh = true;
     private int _consecutiveEmptyScans;
 
     private static string GetTranslation(string key)
@@ -68,15 +69,31 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
                 if (!string.IsNullOrWhiteSpace(option) && SimpleContent != null && SimpleContent.Contains(option))
                 {
+                    if (option == Global.thisdevice)
+                    {
+                        return;
+                    }
+
                     _ = ApplySelectionAndRefreshAsync(option);
                 }
                 else
                 {
+                    // Ignore transient ComboBox clears while the current device remains selectable.
+                    if (!string.IsNullOrWhiteSpace(Global.thisdevice)
+                        && SimpleContent != null
+                        && SimpleContent.Contains(Global.thisdevice))
+                    {
+                        return;
+                    }
+
                     // selection cleared or invalid -> back to startup style
                     Global.thisdevice = string.Empty;
                     ResetDeviceInfo();
                 }
             });
+
+        // Initialize from any devices already present in the DeviceManager cache.
+        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: true, showBusyWhenRefreshing: true);
 
         _ = CheckForUpdate();
     }
@@ -162,11 +179,22 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
     }
 
-    private void DeviceManager_DeviceAdded(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
+    private async void DeviceManager_DeviceAdded(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        // background polling should only update the device dropdown unless nothing is selected yet
-        bool shouldRefreshDetails = string.IsNullOrWhiteSpace(Global.thisdevice);
-        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: shouldRefreshDetails);
+        // Background discovery should stay silent, except for the very first startup auto-refresh.
+        bool hasActiveSelection = !string.IsNullOrWhiteSpace(Global.thisdevice)
+            && Global.DeviceManager?.Devices.Any(d => d.Id == Global.thisdevice) == true;
+        bool shouldRefreshDetails = _pendingStartupAutoRefresh && !hasActiveSelection;
+        _ = await GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: shouldRefreshDetails, showBusyWhenRefreshing: shouldRefreshDetails);
+
+        string selectedDeviceId = !string.IsNullOrWhiteSpace(SelectedSimpleContent)
+            ? SelectedSimpleContent
+            : Global.thisdevice;
+        if (selectedDeviceId == e.Device.Id)
+        {
+            return;
+        }
+
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
@@ -191,7 +219,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
 
         // background polling only refreshes details when the active selection is no longer available
-        _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: true, rescan: false, refreshDetails: removedWasSelected);
+        _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: true, rescan: false, refreshDetails: removedWasSelected, showBusyWhenRefreshing: false);
 
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
@@ -238,7 +266,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
     }
 
-    private async Task ApplySelectionAndRefreshAsync(string deviceId)
+    private async Task ApplySelectionAndRefreshAsync(string deviceId, bool showBusy = true)
     {
         if (string.IsNullOrWhiteSpace(deviceId) || SimpleContent == null || !SimpleContent.Contains(deviceId))
         {
@@ -246,10 +274,10 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
 
         Global.thisdevice = deviceId;
-        await ConnectCore();
+        await ConnectCore(showBusy);
     }
 
-    public async Task<bool> GetDevicesList(bool showWarning = false, string? preferredSelection = null, bool resetWhenEmpty = true, bool rescan = true, bool refreshDetails = true)
+    public async Task<bool> GetDevicesList(bool showWarning = false, string? preferredSelection = null, bool resetWhenEmpty = true, bool rescan = true, bool refreshDetails = true, bool showBusyWhenRefreshing = true)
     {
         if (Global.DeviceManager == null)
         {
@@ -295,9 +323,14 @@ public partial class HomeViewModel : MainPageBase, IDisposable
                 _isApplyingSelection = false;
             }
 
-            if (refreshDetails)
+            if (refreshDetails && !string.IsNullOrWhiteSpace(selection))
             {
-                await ApplySelectionAndRefreshAsync(selection);
+                await ApplySelectionAndRefreshAsync(selection, showBusyWhenRefreshing);
+                _pendingStartupAutoRefresh = false;
+            }
+            else if (!string.IsNullOrWhiteSpace(selection))
+            {
+                Global.thisdevice = selection;
             }
 
             return true;
@@ -325,36 +358,49 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         }
     }
 
-    public async Task ConnectCore()
+    public async Task ConnectCore(bool showBusy = true)
     {
-        IsConnecting = true;
-        MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
-        Dictionary<string, string> DevicesInfo = await GetDevicesInfo.DevicesInfo(Global.thisdevice);
-        Status = sukiViewModel.Status = DevicesInfo["Status"];
-        BLStatus = sukiViewModel.BLStatus = DevicesInfo["BLStatus"];
-        VABStatus = sukiViewModel.VABStatus = DevicesInfo["VABStatus"];
-        CodeName = sukiViewModel.CodeName = DevicesInfo["CodeName"];
-        VNDKVersion = DevicesInfo["VNDKVersion"];
-        CPUCode = DevicesInfo["CPUCode"];
-        PowerOnTime = DevicesInfo["PowerOnTime"];
-        DeviceBrand = DevicesInfo["DeviceBrand"];
-        DeviceModel = DevicesInfo["DeviceModel"];
-        SystemSDK = DevicesInfo["SystemSDK"];
-        CPUABI = DevicesInfo["CPUABI"];
-        DisplayHW = DevicesInfo["DisplayHW"];
-        Density = DevicesInfo["Density"];
-        DiskType = DevicesInfo["DiskType"];
-        BoardID = DevicesInfo["BoardID"];
-        Platform = DevicesInfo["Platform"];
-        Compile = DevicesInfo["Compile"];
-        Kernel = DevicesInfo["Kernel"];
-        BatteryLevel = DevicesInfo["BatteryLevel"];
-        BatteryInfo = DevicesInfo["BatteryInfo"];
-        MemLevel = DevicesInfo["MemLevel"];
-        UseMem = DevicesInfo["UseMem"];
-        DiskInfo = DevicesInfo["DiskInfo"];
-        ProgressDisk = DevicesInfo["ProgressDisk"];
-        IsConnecting = false;
+        if (showBusy)
+        {
+            IsConnecting = true;
+        }
+
+        try
+        {
+            MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
+            Dictionary<string, string> DevicesInfo = await GetDevicesInfo.DevicesInfo(Global.thisdevice);
+            Status = sukiViewModel.Status = DevicesInfo["Status"];
+            BLStatus = sukiViewModel.BLStatus = DevicesInfo["BLStatus"];
+            VABStatus = sukiViewModel.VABStatus = DevicesInfo["VABStatus"];
+            CodeName = sukiViewModel.CodeName = DevicesInfo["CodeName"];
+            VNDKVersion = DevicesInfo["VNDKVersion"];
+            CPUCode = DevicesInfo["CPUCode"];
+            PowerOnTime = DevicesInfo["PowerOnTime"];
+            DeviceBrand = DevicesInfo["DeviceBrand"];
+            DeviceModel = DevicesInfo["DeviceModel"];
+            SystemSDK = DevicesInfo["SystemSDK"];
+            CPUABI = DevicesInfo["CPUABI"];
+            DisplayHW = DevicesInfo["DisplayHW"];
+            Density = DevicesInfo["Density"];
+            DiskType = DevicesInfo["DiskType"];
+            BoardID = DevicesInfo["BoardID"];
+            Platform = DevicesInfo["Platform"];
+            Compile = DevicesInfo["Compile"];
+            Kernel = DevicesInfo["Kernel"];
+            BatteryLevel = DevicesInfo["BatteryLevel"];
+            BatteryInfo = DevicesInfo["BatteryInfo"];
+            MemLevel = DevicesInfo["MemLevel"];
+            UseMem = DevicesInfo["UseMem"];
+            DiskInfo = DevicesInfo["DiskInfo"];
+            ProgressDisk = DevicesInfo["ProgressDisk"];
+        }
+        finally
+        {
+            if (showBusy)
+            {
+                IsConnecting = false;
+            }
+        }
     }
 
     // track last-known device sets per transport for manual refresh notifications

@@ -18,12 +18,26 @@ namespace UotanToolbox.Common.Devices
 
             foreach (var line in lines)
             {
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed))
+                {
+                    continue;
+                }
+
                 if (line.StartsWith("List of devices attached"))
                 {
                     continue;
                 }
 
-                var parts = line.Split(new[] { ' ', '\t' }, System.StringSplitOptions.RemoveEmptyEntries);
+                // Ignore adb daemon startup diagnostics, e.g.:
+                // "* daemon not running; starting now at tcp:5037"
+                // "* daemon started successfully"
+                if (trimmed.StartsWith("*", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var parts = trimmed.Split(new[] { ' ', '\t' }, System.StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 2)
                 {
                     continue;
