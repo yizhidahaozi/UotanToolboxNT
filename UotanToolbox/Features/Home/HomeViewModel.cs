@@ -163,8 +163,9 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceAdded(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        // if new device appears refresh list, keep selection (do not warn)
-        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: true);
+        // background polling should only update the device dropdown unless nothing is selected yet
+        bool shouldRefreshDetails = string.IsNullOrWhiteSpace(Global.thisdevice);
+        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: shouldRefreshDetails);
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
@@ -188,8 +189,8 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             nextSelectable = oldList[targetIndex];
         }
 
-        // refresh list silently during automatic scans
-        _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: false, rescan: false, refreshDetails: true);
+        // background polling only refreshes details when the active selection is no longer available
+        _ = await GetDevicesList(showWarning: false, preferredSelection: nextSelectable, resetWhenEmpty: true, rescan: false, refreshDetails: removedWasSelected);
 
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
@@ -667,7 +668,7 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceUpdated(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
-        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: true);
+        _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: false, rescan: false, refreshDetails: false);
 
         // update notification when a device's properties change
         Global.MainToastManager?.CreateToast()
