@@ -92,66 +92,85 @@ public partial class WiredflashView : UserControl
         return commandOutput;
     }
 
-    public async Task RunBat(string batpath)//调用Bat
+    private async Task<string> RunProcessWithStreamingAsync(ProcessStartInfo startInfo)
     {
-        await Task.Run(() =>
+        using Process process = new Process
         {
-            string wkdir = Path.Combine(Global.bin_path, "platform-tools");
-            Process process = null;
-            process = new Process();
-            process.StartInfo.FileName = batpath;
-            process.StartInfo.WorkingDirectory = wkdir;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.CreateNoWindow = true;
-            process.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
-            process.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
-            _ = process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-            process.Close();
-        });
-    }
+            StartInfo = startInfo,
+            EnableRaisingEvents = true
+        };
 
-    public async Task RunSH(string shpath)
-    {
-        await Task.Run(() =>
-        {
-            string wkdir = Path.Combine(Global.bin_path, "platform-tools");
-            Process process = null;
-            process = new Process();
-            process.StartInfo.FileName = "/bin/bash";
-            process.StartInfo.Arguments = $"-c \"{shpath}\"";
-            process.StartInfo.WorkingDirectory = wkdir;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.CreateNoWindow = true;
-            process.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
-            process.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
-            _ = process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-            process.Close();
-        });
-    }
+        _ = process.Start();
 
-    private async void OutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
-    {
-        if (!string.IsNullOrEmpty(outLine.Data))
+        var stdoutBuilder = new StringBuilder();
+        var stderrBuilder = new StringBuilder();
+        char[] buffer = new char[1024];
+
+        async Task ReadStreamAsync(StreamReader reader, StringBuilder capture)
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            int read;
+            while ((read = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
-                StringBuilder sb = new StringBuilder(WiredflashLog.Text);
-                WiredflashLog.Text = sb.AppendLine(outLine.Data).ToString();
-                WiredflashLog.CaretIndex = WiredflashLog.Text.Length;
-                StringBuilder op = new StringBuilder(output);
-                output = op.AppendLine(outLine.Data).ToString();
-            });
+                string chunk = new string(buffer, 0, read);
+                _ = capture.Append(chunk);
+                await AppendCommandOutputAsync(chunk);
+            }
         }
+
+        Task readStdoutTask = ReadStreamAsync(process.StandardOutput, stdoutBuilder);
+        Task readStderrTask = ReadStreamAsync(process.StandardError, stderrBuilder);
+        await Task.WhenAll(process.WaitForExitAsync(), readStdoutTask, readStderrTask);
+
+        string stdout = stdoutBuilder.ToString().TrimEnd();
+        string stderr = stderrBuilder.ToString().TrimEnd();
+        if (string.IsNullOrWhiteSpace(stderr))
+        {
+            return stdout;
+        }
+
+        if (string.IsNullOrWhiteSpace(stdout))
+        {
+            return stderr;
+        }
+
+        return string.Concat(stdout, Environment.NewLine, stderr);
+    }
+
+    public async Task<string> RunBat(string batpath)
+    {
+        string wkdir = Path.Combine(Global.bin_path, "platform-tools");
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = batpath,
+            WorkingDirectory = wkdir,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
+
+        return await RunProcessWithStreamingAsync(startInfo);
+    }
+
+    public async Task<string> RunSH(string shpath)
+    {
+        string wkdir = Path.Combine(Global.bin_path, "platform-tools");
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "/bin/bash",
+            Arguments = $"-c \"{shpath}\"",
+            WorkingDirectory = wkdir,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
+
+        return await RunProcessWithStreamingAsync(startInfo);
     }
 
     public static FilePickerFileType FastbootTXT { get; } = new("FastbootTXT")
@@ -229,7 +248,7 @@ public partial class WiredflashView : UserControl
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance!;
-            if (sukiViewModel.Status is "Fastboot" or "Fastbootd")
+            if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
             {
                 if (!string.IsNullOrEmpty(FastbootFile.Text) || !string.IsNullOrEmpty(FastbootdFile.Text))
                 {
@@ -682,7 +701,7 @@ public partial class WiredflashView : UserControl
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance!;
-            if (sukiViewModel.Status == "Fastboot")
+            if (sukiViewModel.Status == GetTranslation("Home_Fastboot"))
             {
                 await Fastboot($"-s {Global.thisdevice} set_active a");
             }
@@ -702,7 +721,7 @@ public partial class WiredflashView : UserControl
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
             MainViewModel sukiViewModel = GlobalData.MainViewModelInstance!;
-            if (sukiViewModel.Status == "Fastboot")
+            if (sukiViewModel.Status == GetTranslation("Home_Fastboot"))
             {
                 await Fastboot($"-s {Global.thisdevice} set_active b");
             }
@@ -742,15 +761,15 @@ public partial class WiredflashView : UserControl
             {
                 if (sukiViewModel.Status == GetTranslation("Home_Recovery"))
                 {
-                    string output = await CallExternalProgram.ADB($"-s {Global.thisdevice} shell twrp sideload");
-                    if (output.Contains("not found"))
+                    string precheckOutput = await Adb($"-s {Global.thisdevice} shell twrp sideload");
+                    if (precheckOutput.Contains("not found", StringComparison.OrdinalIgnoreCase))
                     {
-                        await CallExternalProgram.ADB($"-s {Global.thisdevice} reboot sideload");
+                        await Adb($"-s {Global.thisdevice} reboot sideload");
                     }
                     await Task.Delay(2000);
                     await GetDevicesInfo.SetDevicesInfoLittle();
                 }
-                if (sukiViewModel.Status == "Sideload")
+                if (sukiViewModel.Status == GetTranslation("Home_Sideload"))
                 {
                     MoreFlashBusy(true);
                     output = "";
@@ -767,7 +786,7 @@ public partial class WiredflashView : UserControl
             }
             else if (string.IsNullOrEmpty(AdbSideloadFile.Text) && !string.IsNullOrEmpty(FastbootUpdatedFile.Text) && string.IsNullOrEmpty(BatFile.Text))
             {
-                if (sukiViewModel.Status == "Fastboot")
+                if (sukiViewModel.Status == GetTranslation("Home_Fastboot"))
                 {
                     MoreFlashBusy(true);
                     output = "";
@@ -784,18 +803,18 @@ public partial class WiredflashView : UserControl
             }
             else if (string.IsNullOrEmpty(AdbSideloadFile.Text) && string.IsNullOrEmpty(FastbootUpdatedFile.Text) && !string.IsNullOrEmpty(BatFile.Text))
             {
-                if (sukiViewModel.Status == "Fastboot" || sukiViewModel.Status == "Fastbootd")
+                if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
                 {
                     MoreFlashBusy(true);
                     output = "";
                     WiredflashLog.Text = "";
                     if (Global.System == "Windows")
                     {
-                        await RunBat(BatFile.Text);
+                        _ = await RunBat(BatFile.Text);
                     }
                     else
                     {
-                        await RunSH(BatFile.Text);
+                        _ = await RunSH(BatFile.Text);
                     }
                     Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Execution")).OfType(NotificationType.Information).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
                     MoreFlashBusy(false);
