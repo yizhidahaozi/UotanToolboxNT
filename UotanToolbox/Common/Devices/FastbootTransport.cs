@@ -17,7 +17,12 @@ namespace UotanToolbox.Common.Devices
         }
 
         public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default)
-            => CallExternalProgram.Fastboot($"-s {device.Id} {command}");
+        {
+            string args = command.TrimStart().StartsWith("-s ", System.StringComparison.Ordinal)
+                ? command
+                : $"-s {device.Id} {command}";
+            return CallExternalProgram.Fastboot(args);
+        }
 
         public Task<bool> ClaimAsync(DeviceInfo device)
         {

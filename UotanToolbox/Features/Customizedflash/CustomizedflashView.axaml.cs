@@ -5,11 +5,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
-using System.Diagnostics;
+using System;
 using System.IO;
-using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
+using UotanToolbox.Common.Devices;
 
 namespace UotanToolbox.Features.Customizedflash;
 
@@ -25,41 +26,47 @@ public partial class CustomizedflashView : UserControl
         InitializeComponent();
     }
 
-    public async Task Fastboot(string fbshell)//Fastboot实时输出
+    private async Task AppendFastbootOutputAsync(string commandOutput)
     {
-        await Task.Run(() =>
+        if (string.IsNullOrWhiteSpace(commandOutput))
         {
-            string cmd = Global.FastbootPath;
-            ProcessStartInfo fastboot = new ProcessStartInfo(cmd, fbshell)
+            return;
+        }
+
+        string normalizedOutput = commandOutput.Replace("\r\n", "\n").TrimEnd();
+        if (string.IsNullOrWhiteSpace(normalizedOutput))
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(CustomizedflashLog.Text) && !CustomizedflashLog.Text.EndsWith('\n'))
             {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using Process fb = new Process();
-            fb.StartInfo = fastboot;
-            _ = fb.Start();
-            fb.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
-            fb.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
-            fb.BeginOutputReadLine();
-            fb.BeginErrorReadLine();
-            fb.WaitForExit();
-            fb.Close();
+                CustomizedflashLog.Text += Environment.NewLine;
+            }
+
+            CustomizedflashLog.Text += normalizedOutput + Environment.NewLine;
+            CustomizedflashLog.CaretIndex = CustomizedflashLog.Text.Length;
         });
     }
 
-    private async void OutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
+    public async Task Fastboot(string fbshell)
     {
-        if (!string.IsNullOrEmpty(outLine.Data))
+        string commandOutput;
+        if (Global.DeviceManager != null)
         {
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Fastboot);
+            if (dev != null)
             {
-                StringBuilder sb = new StringBuilder(CustomizedflashLog.Text);
-                CustomizedflashLog.Text = sb.AppendLine(outLine.Data).ToString();
-                CustomizedflashLog.CaretIndex = CustomizedflashLog.Text.Length;
-            });
+                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, fbshell);
+                await AppendFastbootOutputAsync(commandOutput);
+                return;
+            }
         }
+
+        commandOutput = await FeaturesHelper.FastbootCmd(Global.thisdevice, fbshell);
+        await AppendFastbootOutputAsync(commandOutput);
     }
 
     private async void OpenSystemFile(object sender, RoutedEventArgs args)

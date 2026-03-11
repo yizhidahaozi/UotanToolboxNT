@@ -35,28 +35,76 @@ public partial class WiredflashView : UserControl
         InitializeComponent();
     }
 
-    // helper to run fastboot via device manager or fallback
-    private Task<string> Fastboot(string cmd)
+    private async Task AppendCommandOutputAsync(string commandOutput)
     {
+        if (string.IsNullOrWhiteSpace(commandOutput))
+        {
+            return;
+        }
+
+        string normalizedOutput = commandOutput.Replace("\r\n", "\n").TrimEnd();
+        if (string.IsNullOrWhiteSpace(normalizedOutput))
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(WiredflashLog.Text) && !WiredflashLog.Text.EndsWith('\n'))
+            {
+                WiredflashLog.Text += Environment.NewLine;
+            }
+
+            WiredflashLog.Text += normalizedOutput + Environment.NewLine;
+            WiredflashLog.CaretIndex = WiredflashLog.Text.Length;
+
+            if (!string.IsNullOrWhiteSpace(output) && !output.EndsWith('\n'))
+            {
+                output += Environment.NewLine;
+            }
+
+            output += normalizedOutput + Environment.NewLine;
+        });
+    }
+
+    // helper to run fastboot via device manager or fallback
+    private async Task<string> Fastboot(string cmd)
+    {
+        string commandOutput;
         if (Global.DeviceManager != null)
         {
             var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Fastboot);
             if (dev != null)
-                return Global.DeviceManager.ExecuteAsync(dev, cmd);
+            {
+                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, cmd);
+                await AppendCommandOutputAsync(commandOutput);
+                return commandOutput;
+            }
         }
-        return FeaturesHelper.FastbootCmd(Global.thisdevice, cmd);
+
+        commandOutput = await FeaturesHelper.FastbootCmd(Global.thisdevice, cmd);
+        await AppendCommandOutputAsync(commandOutput);
+        return commandOutput;
     }
 
     // helper to run adb via device manager or fallback
-    private Task<string> Adb(string cmd)
+    private async Task<string> Adb(string cmd)
     {
+        string commandOutput;
         if (Global.DeviceManager != null)
         {
             var dev = Global.DeviceManager.Devices.FirstOrDefault(d => d.Id == Global.thisdevice && d.Transport == TransportType.Adb);
             if (dev != null)
-                return Global.DeviceManager.ExecuteAsync(dev, cmd);
+            {
+                commandOutput = await Global.DeviceManager.ExecuteAsync(dev, cmd);
+                await AppendCommandOutputAsync(commandOutput);
+                return commandOutput;
+            }
         }
-        return FeaturesHelper.AdbCmd(Global.thisdevice, cmd);
+
+        commandOutput = await FeaturesHelper.AdbCmd(Global.thisdevice, cmd);
+        await AppendCommandOutputAsync(commandOutput);
+        return commandOutput;
     }
 
     public async Task RunBat(string batpath)//调用Bat

@@ -17,7 +17,12 @@ namespace UotanToolbox.Common.Devices
         }
 
         public Task<string> RunAsync(DeviceInfo device, string command, CancellationToken cancel = default)
-            => CallExternalProgram.HDC($"-t {device.Id} {command}");
+        {
+            string args = command.TrimStart().StartsWith("-t ", System.StringComparison.Ordinal)
+                ? command
+                : $"-t {device.Id} {command}";
+            return CallExternalProgram.HDC(args);
+        }
 
         public Task<bool> ClaimAsync(DeviceInfo device) => Task.FromResult(true);
         public Task ReleaseAsync(DeviceInfo device) => Task.CompletedTask;
