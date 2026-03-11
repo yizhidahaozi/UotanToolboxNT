@@ -11,50 +11,36 @@ namespace UotanToolbox.Common
     {
         private static async Task<string> RunProcessAsync(ProcessStartInfo startInfo)
         {
-            StringBuilder outputBuilder = new StringBuilder();
-            object appendLock = new object();
-            TaskCompletionSource<bool> standardOutputCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            TaskCompletionSource<bool> standardErrorCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
             using Process process = new Process
             {
                 StartInfo = startInfo,
                 EnableRaisingEvents = true
             };
 
-            process.OutputDataReceived += (_, args) =>
-            {
-                if (args.Data == null)
-                {
-                    standardOutputCompleted.TrySetResult(true);
-                    return;
-                }
-
-                lock (appendLock)
-                {
-                    _ = outputBuilder.AppendLine(args.Data);
-                }
-            };
-
-            process.ErrorDataReceived += (_, args) =>
-            {
-                if (args.Data == null)
-                {
-                    standardErrorCompleted.TrySetResult(true);
-                    return;
-                }
-
-                lock (appendLock)
-                {
-                    _ = outputBuilder.AppendLine(args.Data);
-                }
-            };
-
             _ = process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
 
-            await Task.WhenAll(process.WaitForExitAsync(), standardOutputCompleted.Task, standardErrorCompleted.Task);
+            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            string standardOutput = await standardOutputTask;
+            string standardError = await standardErrorTask;
+
+            StringBuilder outputBuilder = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(standardOutput))
+            {
+                _ = outputBuilder.Append(standardOutput.TrimEnd());
+            }
+
+            if (!string.IsNullOrWhiteSpace(standardError))
+            {
+                if (outputBuilder.Length > 0)
+                {
+                    _ = outputBuilder.AppendLine();
+                }
+
+                _ = outputBuilder.Append(standardError.TrimEnd());
+            }
 
             return outputBuilder.ToString().TrimEnd();
         }
