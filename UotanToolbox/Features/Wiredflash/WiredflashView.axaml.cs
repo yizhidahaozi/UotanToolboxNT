@@ -626,17 +626,7 @@ public partial class WiredflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            string filePath = files[0].TryGetLocalPath();
-            try
-            {
-                // Validate the ZIP file using PatchDetect
-                var zipInfo = await PatchDetect.Patch_Detect(filePath);
-                FastbootUpdatedFile.Text = filePath;
-            }
-            catch (Exception ex)
-            {
-                WiredflashLog.Text += $"Error: {ex.Message}\n";
-            }
+            FastbootUpdatedFile.Text = files[0].TryGetLocalPath();
         }
     }
     private async void OpenBatFile(object sender, RoutedEventArgs args)
