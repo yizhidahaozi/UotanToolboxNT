@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using ZstdSharp;
 
 namespace UotanToolbox.Common.ROMHelper
 {
@@ -467,13 +468,118 @@ namespace UotanToolbox.Common.ROMHelper
 
         /// <summary>
         /// 根据远程 payload url 获取分区信息。
+        /// 支持直接访问 ZIP 包（通过 HTTP range 请求映射 payload entry）以及
+        /// 传统的直接下载方式（raw payload 或不易范围请求的服务器）。
         /// </summary>
         public static async Task<List<PartitionInfoData>> GetPartitionInfoFromUrlAsync(string url)
         {
-            // download manifest portion using existing remote helper
-            PayloadMetadata meta = await GetPayloadMetadataFromUrlAsync(url);
-            // metadata already loaded manifest
-            return ComputePartitionInfo(meta.Manifest, meta.BaseOffset);
+            using var client = new HttpClient();
+            // try to read manifest by mapping the payload entry inside a zip
+            try
+            {
+                var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
+                using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
+                PayloadParser parser = new();
+                var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
+                return ComputePartitionInfo(manifest, baseOffset);
+            }
+            catch (Exception)
+            {
+                // fallback to legacy metadata retrieval
+                PayloadMetadata meta = await GetPayloadMetadataFromUrlAsync(url);
+                return ComputePartitionInfo(meta.Manifest, meta.BaseOffset);
+            }
+        }
+
+        /// <summary>
+        /// 从远端 payload URL 下载并解压指定分区。
+        /// <paramref name="partitionNames"/> 为 null 或长度为 0 表示解压全部。
+        /// 该方法支持 ZIP 包（使用 range 请求定位 payload.bin）和普通 payload，两者均
+        /// 会在本地临时文件基础上调用 <see cref="ExtractSelectedPartitions(string,string[]?)"/> 进行真正的解压。
+        /// 如果要提取特定分区，可传入其名称数组；否则传 null 表示全盘提取。
+        /// </summary>
+        public static async Task ExtractSelectedPartitionsFromUrlV2Async(string url, string? outputDir = null, string[]? partitionNames = null)
+        {
+            outputDir ??= Directory.GetCurrentDirectory();
+
+            // normalize filter set for case-insensitive comparison
+            HashSet<string> nameSet = partitionNames == null || partitionNames.Length == 0
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(partitionNames, StringComparer.OrdinalIgnoreCase);
+
+            using var client = new HttpClient();
+            // attempt streaming extraction from zip payload entry
+            try
+            {
+                var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
+                using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
+                PayloadParser parser = new();
+                var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
+
+                var parts = manifest.Partitions
+                    .Where(p => p.PartitionName != null &&
+                                (nameSet.Count == 0 || nameSet.Contains(p.PartitionName)))
+                    .ToList();
+
+                foreach (var part in parts)
+                {
+                    string outPath = Path.Combine(outputDir, part.PartitionName + ".img");
+                    Console.WriteLine($"Extracting {part.PartitionName} to {outPath}...");
+                    parser.ExtractPartition(part, outPath, stream, baseOffset, manifest.BlockSize);
+                }
+
+                return;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is FileNotFoundException)
+            {
+                // fall back to legacy download flow
+            }
+
+            bool contains = await RemoteUrlContainsPayloadAsync(url);
+            if (!contains)
+                throw new FileNotFoundException("remote URL does not contain a recognized payload");
+
+            string tempPayload = Path.GetTempFileName();
+            try
+            {
+                bool isZip;
+                var headReq = new HttpRequestMessage(HttpMethod.Get, url);
+                headReq.Headers.Range = new RangeHeaderValue(0, 3);
+                using var headResp = await client.SendAsync(headReq, HttpCompletionOption.ResponseHeadersRead);
+                byte[] header = await headResp.Content.ReadAsByteArrayAsync();
+                isZip = header.Length >= 2 && Encoding.ASCII.GetString(header, 0, 2) == ZipMagic;
+
+                if (isZip)
+                {
+                    await DownloadEntryFromZipAsync(client, url, PayloadFilename, tempPayload);
+                }
+                else
+                {
+                    using var resp = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                    resp.EnsureSuccessStatusCode();
+                    using var fs = File.Create(tempPayload);
+                    await resp.Content.CopyToAsync(fs);
+                }
+
+                // reuse existing helper which honors partition filter
+                ExtractSelectedPartitions(tempPayload, nameSet.Count == 0 ? null : nameSet.ToArray());
+
+                if (outputDir != Directory.GetCurrentDirectory())
+                {
+                    var extracted = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.img", SearchOption.TopDirectoryOnly)
+                        .Where(f => nameSet.Count == 0 || nameSet.Contains(Path.GetFileNameWithoutExtension(f)))
+                        .ToArray();
+                    foreach (var src in extracted)
+                    {
+                        string dest = Path.Combine(outputDir, Path.GetFileName(src));
+                        File.Move(src, dest, true);
+                    }
+                }
+            }
+            finally
+            {
+                try { File.Delete(tempPayload); } catch { }
+            }
         }
 
         /// <summary>
@@ -548,9 +654,11 @@ namespace UotanToolbox.Common.ROMHelper
             }
 
             DeltaArchiveManifest manifest = DeltaArchiveManifest.Parser.ParseFrom(manifestRaw);
+            // do not reject nonzero minor version; delta payloads are allowed but may
+            // contain operations we don't support when extracting later.
             if (manifest.MinorVersion != 0)
             {
-                throw new InvalidOperationException("Delta payloads are not supported, please use a full payload file");
+                // Debug.WriteLine($"delta payload minor version {manifest.MinorVersion}");
             }
 
             ulong baseOffset = 24 + manifestLen + metadataSigLen;
@@ -597,7 +705,8 @@ namespace UotanToolbox.Common.ROMHelper
             DeltaArchiveManifest manifest = DeltaArchiveManifest.Parser.ParseFrom(manifestRaw);
             if (manifest.MinorVersion != 0)
             {
-                throw new InvalidOperationException("Delta payloads are not supported, please use a full payload file");
+                // allow delta manifests, no exception
+                // Debug.WriteLine($"delta payload minor version {manifest.MinorVersion}");
             }
 
             ulong baseOffset = 24 + manifestLen + metadataSigLen;
@@ -609,7 +718,6 @@ namespace UotanToolbox.Common.ROMHelper
         /// </summary>
         private void ParsePayload(Stream stream, string[] extractFiles)
         {
-            //"Parsing payload..."
 
             // Magic
             byte[] magic = new byte[PayloadMagic.Length];
@@ -824,79 +932,145 @@ namespace UotanToolbox.Common.ROMHelper
 
         /// <summary>
         /// 解压单个分区到镜像文件。
+        /// <para>当前实现支持以下操作类型：</para>
+        /// <list type="bullet">
+        ///   <item><description>Replace / ReplaceBz / ReplaceXz / ReplaceZstd</description></item>
+        ///   <item><description>Zero</description></item>
+        ///   <item><description>Discard (跳过，不写入数据)</description></item>
+        ///   <item><description>SourceCopy（顺序执行）</description></item>
+        /// </list>
+        /// 其他类型（SourceBsdiff、BrotliBsdiff、Puffdiff 等）仍未实现，
+        /// 遇到时会抛出 <see cref="NotSupportedException"/> 。
         /// </summary>
         private void ExtractPartition(PartitionUpdate partition, string outFilename, Stream stream, ulong baseOffset, uint blockSize)
         {
-            // open with read/write so that source-copy operations can read previously written data
             using var outFile = new FileStream(outFilename, FileMode.Create, FileAccess.ReadWrite);
+            // calculate approximate total size based on dst extents
+            long totalSize = 0;
             foreach (var op in partition.Operations)
+            {
+                foreach (var ext in op.DstExtents)
+                {
+                    totalSize += (long)ext.NumBlocks * blockSize;
+                }
+            }
+            if (totalSize > 0)
+                outFile.SetLength(totalSize);
+
+            object writeLock = new object();
+            object streamLock = new object();
+
+            var parallelOps = new List<InstallOperation>();
+            var sequentialOps = new List<InstallOperation>();
+            foreach (var op in partition.Operations)
+            {
+                // operations that rely on reading data already written to the destination
+                // (source copy/diff) must be executed sequentially, otherwise we risk races.
+                if (op.Type == InstallOperation.Types.Type.SourceCopy ||
+                    op.Type == InstallOperation.Types.Type.SourceBsdiff ||
+                    op.Type == InstallOperation.Types.Type.BrotliBsdiff ||
+                    op.Type == InstallOperation.Types.Type.Puffdiff)
+                {
+                    sequentialOps.Add(op);
+                }
+                else
+                {
+                    parallelOps.Add(op);
+                }
+            }
+
+            void ProcessOperation(InstallOperation op)
             {
                 byte[] data = new byte[op.DataLength];
                 long dataPos = (long)(baseOffset + op.DataOffset);
-
-                stream.Seek(dataPos, SeekOrigin.Begin);
-                int bytesRead = stream.Read(data, 0, data.Length);
-                if (bytesRead != data.Length)
+                lock (streamLock)
                 {
-                    throw new InvalidOperationException($"Failed to read enough data from partition {outFilename}");
+                    stream.Seek(dataPos, SeekOrigin.Begin);
+                    int r = stream.Read(data, 0, data.Length);
+                    if (r != data.Length)
+                        throw new InvalidOperationException($"Failed to read enough data from partition {outFilename}");
                 }
-
                 long outSeekPos = (long)(op.DstExtents[0].StartBlock * blockSize);
-                outFile.Seek(outSeekPos, SeekOrigin.Begin);
-
-                switch (op.Type)
+                lock (writeLock)
                 {
-                    case InstallOperation.Types.Type.Replace:
-                        outFile.Write(data, 0, data.Length);
-                        break;
+                    outFile.Seek(outSeekPos, SeekOrigin.Begin);
+                    switch (op.Type)
+                    {
+                        case InstallOperation.Types.Type.Replace:
+                            outFile.Write(data, 0, data.Length);
+                            break;
+                        case InstallOperation.Types.Type.ReplaceBz:
+                            using (var bzr = new BZip2Stream(new MemoryStream(data), SharpCompress.Compressors.CompressionMode.Decompress, false))
+                            {
+                                bzr.CopyTo(outFile);
+                            }
+                            break;
+                        case InstallOperation.Types.Type.ReplaceXz:
+                            using (var xzr = new XZStream(new MemoryStream(data)))
+                            {
+                                xzr.CopyTo(outFile);
+                            }
+                            break;
+                        case InstallOperation.Types.Type.ReplaceZstd:
+                            using (var d = new ZstdSharp.Decompressor())
+                            {
+                                byte[] decomp = d.Unwrap(data).ToArray();
+                                outFile.Write(decomp, 0, decomp.Length);
+                            }
+                            break;
+                        case InstallOperation.Types.Type.Zero:
+                            foreach (var ext in op.DstExtents)
+                            {
+                                long pos = (long)(ext.StartBlock * blockSize);
+                                outFile.Seek(pos, SeekOrigin.Begin);
+                                byte[] zeros = new byte[ext.NumBlocks * blockSize];
+                                outFile.Write(zeros, 0, zeros.Length);
+                            }
+                            break;
+                        case InstallOperation.Types.Type.Discard:
+                            // nothing needs to be written; the destination remains unchanged
+                            // (treated as undefined).
+                            break;
+                        default:
+                            throw new InvalidOperationException($"Unsupported parallel operation type: {op.Type}");
+                    }
+                }
+            }
 
-                    case InstallOperation.Types.Type.ReplaceBz:
-                        using (var bzr = new BZip2Stream(new MemoryStream(data), SharpCompress.Compressors.CompressionMode.Decompress, false))
-                        {
-                            bzr.CopyTo(outFile);
-                        }
-                        break;
+            Parallel.ForEach(parallelOps.OrderBy(o => o.DataOffset), ProcessOperation);
 
-                    case InstallOperation.Types.Type.ReplaceXz:
-                        using (var xzr = new XZStream(new MemoryStream(data)))
-                        {
-                            xzr.CopyTo(outFile);
-                        }
-                        break;
-
-                    case InstallOperation.Types.Type.Zero:
-                        foreach (var ext in op.DstExtents)
-                        {
-                            outSeekPos = (long)(ext.StartBlock * blockSize);
-                            outFile.Seek(outSeekPos, SeekOrigin.Begin);
-                            byte[] zeros = new byte[ext.NumBlocks * blockSize];
-                            outFile.Write(zeros, 0, zeros.Length);
-                        }
-                        break;
-
-                    case InstallOperation.Types.Type.SourceCopy:
-                        // copy data already written in outFile from source extents
-                        foreach (var srcExt in op.SrcExtents)
-                        {
-                            long srcPos = (long)(srcExt.StartBlock * blockSize);
-                            int length = (int)(srcExt.NumBlocks * blockSize);
-                            byte[] buf = new byte[length];
-                            outFile.Seek(srcPos, SeekOrigin.Begin);
-                            int r = outFile.Read(buf, 0, length);
-                            if (r != length)
-                                throw new InvalidOperationException("Failed to read source data for SOURCE_COPY");
-                            long dstPos = (long)(op.DstExtents[0].StartBlock * blockSize);
-                            outFile.Seek(dstPos, SeekOrigin.Begin);
-                            outFile.Write(buf, 0, r);
-                        }
-                        break;
-
-                    case InstallOperation.Types.Type.SourceBsdiff:
-                        // This requires applying a binary diff against existing data; not implemented
-                        throw new NotSupportedException("SOURCE_BSDIFF is not supported by this tool");
-
-                    default:
-                        throw new InvalidOperationException($"Unsupported operation type: {op.Type}");
+            foreach (var op in sequentialOps)
+            {
+                if (op.Type == InstallOperation.Types.Type.SourceCopy)
+                {
+                    foreach (var srcExt in op.SrcExtents)
+                    {
+                        long srcPos = (long)(srcExt.StartBlock * blockSize);
+                        int length = (int)(srcExt.NumBlocks * blockSize);
+                        byte[] buf = new byte[length];
+                        outFile.Seek(srcPos, SeekOrigin.Begin);
+                        int r = outFile.Read(buf, 0, length);
+                        if (r != length)
+                            throw new InvalidOperationException("Failed to read source data for SOURCE_COPY");
+                        long dstPos = (long)(op.DstExtents[0].StartBlock * blockSize);
+                        outFile.Seek(dstPos, SeekOrigin.Begin);
+                        outFile.Write(buf, 0, r);
+                    }
+                }
+                else if (op.Type == InstallOperation.Types.Type.SourceBsdiff ||
+                         op.Type == InstallOperation.Types.Type.BrotliBsdiff ||
+                         op.Type == InstallOperation.Types.Type.Puffdiff)
+                {
+                    // diff-based operations require applying patch algorithms; not yet
+                    // implemented.  leave a clear message rather than falling through to
+                    // a generic error.
+                    throw new NotSupportedException($"{op.Type} operations are not supported by this library");
+                }
+                else
+                {
+                    // This should not happen because we filtered the op types above,
+                    // but guard anyway.
+                    throw new InvalidOperationException($"Unexpected sequential operation type: {op.Type}");
                 }
             }
         }
@@ -931,68 +1105,17 @@ namespace UotanToolbox.Common.ROMHelper
         }
 
         /// <summary>
-        /// <summary>
         /// 从远程 URL 下载并解压 boot 分区镜像。
-        /// - ZIP 包：仅拉取并解压 payload.bin 条目
-        /// - 直接 payload.bin：下载整个文件
+        /// 支持两种模式：
+        /// 1. ZIP 包：使用 HTTP range 请求映射 payload.bin entry，避免下载整个文件。
+        /// 2. 传统模式：下载整个 payload（zip 或 raw）并使用现有解析逻辑。
         /// 方法会根据元数据自动处理 A/B 多槽位，所有名称以 "boot" 开头的分区都会输出。
         /// </summary>
-        public static async Task ExtractBootFromRemoteAsync(string url, string? outputDirectory = null)
+        public static Task ExtractBootFromUrlAsync(string url, string? outputDir = null)
         {
-            outputDirectory ??= Directory.GetCurrentDirectory();
-
-            using HttpClient client = new();
-            bool contains = await RemoteUrlContainsPayloadAsync(url);
-            if (!contains)
-                throw new FileNotFoundException("remote URL does not contain a recognized payload");
-
-            string tempPayload = Path.GetTempFileName();
-            try
-            {
-                bool isZip;
-                var headReq = new HttpRequestMessage(HttpMethod.Get, url);
-                headReq.Headers.Range = new RangeHeaderValue(0, 3);
-                using var headResp = await client.SendAsync(headReq, HttpCompletionOption.ResponseHeadersRead);
-                byte[] header = await headResp.Content.ReadAsByteArrayAsync();
-                isZip = header.Length >= 2 && Encoding.ASCII.GetString(header, 0, 2) == ZipMagic;
-
-                if (isZip)
-                {
-                    await DownloadEntryFromZipAsync(client, url, PayloadFilename, tempPayload);
-                }
-                else
-                {
-                    using var resp = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                    resp.EnsureSuccessStatusCode();
-                    using var fs = File.Create(tempPayload);
-                    await resp.Content.CopyToAsync(fs);
-                }
-
-                PayloadMetadata meta = isZip
-                    ? GetPayloadMetadata(tempPayload)
-                    : GetPayloadMetadata(tempPayload);
-                var bootParts = meta.PartitionNames.Where(n => n.StartsWith("boot", StringComparison.OrdinalIgnoreCase)).ToArray();
-                if (bootParts.Length == 0)
-                    throw new InvalidOperationException("no boot partitions found in payload");
-
-                ExtractSelectedPartitions(tempPayload, bootParts);
-
-                if (outputDirectory != Directory.GetCurrentDirectory())
-                {
-                    foreach (var part in bootParts)
-                    {
-                        string src = Path.Combine(Directory.GetCurrentDirectory(), part + ".img");
-                        if (File.Exists(src))
-                        {
-                            File.Move(src, Path.Combine(outputDirectory, part + ".img"), true);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                try { File.Delete(tempPayload); } catch { }
-            }
+            // simply delegate to the general extractor with a filter for boot variants
+            string[] bootNames = new[] { "boot", "boot_a", "boot_b" };
+            return ExtractSelectedPartitionsFromUrlV2Async(url, outputDir, bootNames);
         }
 
         private static async Task<bool> RemoteZipHasEntryAsync(HttpClient client, string url, string entryName)
@@ -1165,64 +1288,7 @@ namespace UotanToolbox.Common.ROMHelper
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
-        public static async Task<List<PartitionInfoData>> GetPartitionInfoFromUrlV2Async(string url)
-        {
-            using var client = new HttpClient();
-            var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
-            using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
-            PayloadParser parser = new();
-            var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
-            return ComputePartitionInfo(manifest, baseOffset);
-        }
 
-        public static async Task ExtractBootFromUrlV2Async(string url, string? outputDir = null)
-        {
-            outputDir ??= Directory.GetCurrentDirectory();
-            using var client = new HttpClient();
-            var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
-            using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
-            PayloadParser parser = new();
-            var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
-            
-            // Match "boot", "boot_a", "boot_b" (case-insensitive)
-            var bootParts = manifest.Partitions.Where(p => 
-                p.PartitionName.Equals("boot", StringComparison.OrdinalIgnoreCase) || 
-                p.PartitionName.Equals("boot_a", StringComparison.OrdinalIgnoreCase) || 
-                p.PartitionName.Equals("boot_b", StringComparison.OrdinalIgnoreCase));
-                
-            foreach (var part in bootParts)
-            {
-                string outPath = Path.Combine(outputDir, part.PartitionName + ".img");
-                Console.WriteLine($"Extracting {part.PartitionName} to {outPath}...");
-                parser.ExtractPartition(part, outPath, stream, baseOffset, manifest.BlockSize);
-            }
-        }
-
-        public static async Task ExtractSelectedPartitionsFromUrlV2Async(string url, string outputDir, string[]? partitionNames = null)
-        {
-            partitionNames ??= Array.Empty<string>();
-            Directory.CreateDirectory(outputDir);
-
-            using var client = new HttpClient();
-            var (dataOffset, compSize) = await GetZipEntryInfoAsync(client, url, PayloadFilename);
-            using var stream = new HttpOffsetStream(url, dataOffset, compSize, client);
-
-            PayloadParser parser = new();
-            var (manifest, _, _, baseOffset) = await parser.ReadManifestAsync(stream);
-
-            IEnumerable<PartitionUpdate> partitions = manifest.Partitions.Where(p => !string.IsNullOrWhiteSpace(p.PartitionName));
-            if (partitionNames.Length > 0)
-            {
-                var wanted = new HashSet<string>(partitionNames, StringComparer.OrdinalIgnoreCase);
-                partitions = partitions.Where(p => p.PartitionName != null && wanted.Contains(p.PartitionName));
-            }
-
-            foreach (var part in partitions)
-            {
-                var outPath = Path.Combine(outputDir, part.PartitionName + ".img");
-                parser.ExtractPartition(part, outPath, stream, baseOffset, manifest.BlockSize);
-            }
-        }
 
         private static int FindEOCDOffset(byte[] data)
         {

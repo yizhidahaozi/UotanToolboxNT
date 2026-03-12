@@ -2,7 +2,6 @@
 using SharpCompress.Common;
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Threading.Tasks;
 
 namespace UotanToolbox.Common.PatchHelper
@@ -37,10 +36,6 @@ namespace UotanToolbox.Common.PatchHelper
             {
                 try
                 {
-                    ZipFile.ExtractToDirectory(path, Patchinfo.TempPath, true);
-                }
-                catch
-                {
                     using IArchive archive = ArchiveFactory.Open(path);
                     foreach (IArchiveEntry entry in archive.Entries)
                     {
@@ -50,6 +45,11 @@ namespace UotanToolbox.Common.PatchHelper
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    throw new Exception(GetTranslation("Basicflash_ZipError") + ex.Message);
+                }
+
                 bool isMagisk = Directory.Exists(Path.Combine(Patchinfo.TempPath, "assets")) && File.Exists(Path.Combine(Patchinfo.TempPath, "assets", "util_functions.sh"));
                 if (!isMagisk)
                 {

@@ -413,17 +413,35 @@ public partial class AdvancedflashView : UserControl
 
     private async Task<bool> TryParseAndPushToUiAsync(string path)
     {
-        if (await TryParsePayloadAsync(path))
+        try
         {
-            return true;
-        }
+            // 优先尝试解析 payload
+            if (await TryParsePayloadAsync(path))
+            {
+                return true;
+            }
 
-        if (await TryParseSuperAsync(path))
+            // 如果不是 payload，再尝试解析 super 镜像
+            if (Path.GetExtension(path).Equals(".img", StringComparison.OrdinalIgnoreCase) && await TryParseSuperAsync(path))
+            {
+                return true;
+            }
+        }
+        catch (FileNotFoundException ex)
         {
-            return true;
+            AdvancedflashLog.Text += $"\nError: File not found - {ex.Message}";
+        }
+        catch (InvalidOperationException ex)
+        {
+            AdvancedflashLog.Text += $"\nError: Invalid operation - {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            AdvancedflashLog.Text += $"\nError: An unexpected error occurred - {ex.Message}";
         }
 
         _parsedFileType = ParsedFileType.Unknown;
+        AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}";
         return false;
     }
 
@@ -593,7 +611,7 @@ public partial class AdvancedflashView : UserControl
         {
             if (Uri.IsWellFormedUriString(File.Text, UriKind.Absolute))
             {
-                var parts = await PayloadParser.GetPartitionInfoFromUrlV2Async(File.Text);
+                var parts = await PayloadParser.GetPartitionInfoFromUrlAsync(File.Text);
                 var vm = GetViewModel();
                 vm.FalshPartModel.Clear();
                 foreach (var p in parts)
@@ -688,7 +706,7 @@ public partial class AdvancedflashView : UserControl
                     await ExtractSuperSelectedAsync(sourcePath, outputDir, selectedParts);
                     break;
                 case ParsedFileType.PayloadUrl:
-                    await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts);
+                    await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts.Select(x => x.Name).ToArray());
                     break;
                 default:
                     AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
@@ -836,15 +854,21 @@ public partial class AdvancedflashView : UserControl
         }
     }
 
-    private static async Task ExtractPayloadUrlSelectedAsync(string sourceUrl, string outputDir, List<FalshPartModel> selectedParts)
+    // general helper accepting an explicit partition name filter (null/empty = all)
+    private static async Task ExtractPayloadUrlSelectedAsync(string sourceUrl, string outputDir, string[]? partitionNames)
+    {
+        await PayloadParser.ExtractSelectedPartitionsFromUrlV2Async(sourceUrl, outputDir, partitionNames);
+    }
+
+    // old overload kept for compatibility with existing callers
+    private static Task ExtractPayloadUrlSelectedAsync(string sourceUrl, string outputDir, List<FalshPartModel> selectedParts)
     {
         var names = selectedParts
             .Select(x => x.Name)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-
-        await PayloadParser.ExtractSelectedPartitionsFromUrlV2Async(sourceUrl, outputDir, names);
+        return ExtractPayloadUrlSelectedAsync(sourceUrl, outputDir, names);
     }
 
     private static string GetUnpackOutputDir(string sourcePath, bool isUrl)
@@ -1024,7 +1048,7 @@ public partial class AdvancedflashView : UserControl
             string allinfo = await FeaturesHelper.FastbootCmd(Global.thisdevice, "getvar all");
             string[] parts = new string[1000];
             string[] allinfos = allinfo.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            if ((bool)ShowAllPart.IsChecked)
+            if ((bool?)ShowAllPart?.IsChecked == true)
             {
                 for (int i = 0; i < allinfos.Length; i++)
                 {
@@ -1158,11 +1182,11 @@ public partial class AdvancedflashView : UserControl
                             zstfile.Close();
                             await Fastboot($"-s {Global.thisdevice} flash {item.Name} {outfile}");
                         }
-                        else if (item.Name.Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
+                        else if (item.Name != null && item.Name.Contains("vbmeta") && DisVbmeta != null && DisVbmeta.IsChecked == true)
                         {
                             await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {item.Name} {item.FullFilePath}");
                         }
-                        else if ((item.Name == Global.SetBoot) && (bool)AddRoot.IsChecked && !string.IsNullOrEmpty(Global.MagiskAPKPath))
+                        else if (item.Name == Global.SetBoot && AddRoot != null && AddRoot.IsChecked == true && !string.IsNullOrEmpty(Global.MagiskAPKPath))
                         {
                             AdvancedflashLog.Text += GetTranslation("Wiredflash_RepairBoot");
                             Global.Bootinfo = await ImageDetect.Boot_Detect(item.FullFilePath);
@@ -1242,7 +1266,7 @@ public partial class AdvancedflashView : UserControl
                         await ExtractSuperSelectedAsync(sourcePath, outputDir, selectedParts);
                         break;
                     case ParsedFileType.PayloadUrl:
-                        await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts);
+                        await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts.Select(x => x.Name).ToArray());
                         break;
                     default:
                         AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
@@ -1266,11 +1290,11 @@ public partial class AdvancedflashView : UserControl
                 {
                     if (item.Select == true)
                     {
-                        if (item.Name.Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
+                        if (item.Name != null && item.Name.Contains("vbmeta") && DisVbmeta != null && DisVbmeta.IsChecked == true)
                         {
                             await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {item.Name} {item.FullFilePath}");
                         }
-                        else if ((item.Name == Global.SetBoot) && (bool)AddRoot.IsChecked && !string.IsNullOrEmpty(Global.MagiskAPKPath))
+                        else if (item.Name == Global.SetBoot && AddRoot != null && AddRoot.IsChecked == true && !string.IsNullOrEmpty(Global.MagiskAPKPath))
                         {
                             AdvancedflashLog.Text += GetTranslation("Wiredflash_RepairBoot");
                             Global.Bootinfo = await ImageDetect.Boot_Detect(item.FullFilePath);

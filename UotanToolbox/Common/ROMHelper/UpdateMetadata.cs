@@ -2632,6 +2632,10 @@ namespace ChromeosUpdateEngine
                 /// </summary>
                 [pbr::OriginalName("REPLACE_XZ")] ReplaceXz = 8,
                 /// <summary>
+                /// On minor version 6 or newer, these operations are supported:
+                /// </summary>
+                [pbr::OriginalName("REPLACE_ZSTD")] ReplaceZstd = 11,
+                /// <summary>
                 /// On minor version 4 or newer, these operations are supported:
                 /// </summary>
                 [pbr::OriginalName("ZERO")] Zero = 6,
