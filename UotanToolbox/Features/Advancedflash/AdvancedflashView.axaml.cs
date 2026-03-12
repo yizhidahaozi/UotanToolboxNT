@@ -192,7 +192,8 @@ public partial class AdvancedflashView : UserControl
             var localPath = files[0].TryGetLocalPath();
             if (string.IsNullOrWhiteSpace(localPath))
             {
-                AdvancedflashLog.Text += "\nInvalid selected file path.";
+                AdvancedflashLog.Text += "\nInvalid selected file path."; 
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
@@ -302,6 +303,7 @@ public partial class AdvancedflashView : UserControl
                         catch (Exception ex)
                         {
                             AdvancedflashLog.Text += $"Error: {ex.Message}";
+                            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
                         }
                         break;
                     case ".txt":
@@ -384,6 +386,7 @@ public partial class AdvancedflashView : UserControl
                         catch (Exception ex)
                         {
                             AdvancedflashLog.Text += $"Error: {ex.Message}";
+                            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
                         }
                         break;
                 }
@@ -396,7 +399,8 @@ public partial class AdvancedflashView : UserControl
                 var parsed = await TryParseAndPushToUiAsync(path);
                 if (!parsed)
                 {
-                    AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}";
+                    AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}"; 
+                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Unsupport")).Dismiss().ByClickingBackground().TryShow();
                 }
 
                 TrySyncFileNamesFromUnpackFolder(path);
@@ -404,6 +408,7 @@ public partial class AdvancedflashView : UserControl
             catch (Exception ex)
             {
                 AdvancedflashLog.Text += $"Error: {ex.Message}";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
             }
             finally
             {
@@ -432,18 +437,22 @@ public partial class AdvancedflashView : UserControl
         catch (FileNotFoundException ex)
         {
             AdvancedflashLog.Text += $"\nError: File not found - {ex.Message}";
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_FileNotFound")).Dismiss().ByClickingBackground().TryShow();
         }
         catch (InvalidOperationException ex)
         {
-            AdvancedflashLog.Text += $"\nError: Invalid operation - {ex.Message}";
+            AdvancedflashLog.Text += $"\nError: Invalid operation - {ex.Message}"; 
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Invalid")).Dismiss().ByClickingBackground().TryShow();
         }
         catch (Exception ex)
         {
             AdvancedflashLog.Text += $"\nError: An unexpected error occurred - {ex.Message}";
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Unexpected")).Dismiss().ByClickingBackground().TryShow();
         }
 
         _parsedFileType = ParsedFileType.Unknown;
-        AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}";
+        AdvancedflashLog.Text += $"\nUnsupported format: {Path.GetFileName(path)}"; 
+        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Unsupport")).Dismiss().ByClickingBackground().TryShow();
         return false;
     }
 
@@ -597,6 +606,7 @@ public partial class AdvancedflashView : UserControl
             catch (Exception ex)
             {
                 AdvancedflashLog.Text += $"Error: {ex.Message}";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
             }
             finally
             {
@@ -654,6 +664,7 @@ public partial class AdvancedflashView : UserControl
         catch (Exception ex)
         {
             AdvancedflashLog.Text += $"Error: {ex.Message}";
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
         }
         finally
         {
@@ -672,18 +683,21 @@ public partial class AdvancedflashView : UserControl
             if (string.IsNullOrWhiteSpace(sourcePath))
             {
                 AdvancedflashLog.Text += "\nInvalid image path.";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
             if (!isUrl && !System.IO.File.Exists(sourcePath))
             {
-                AdvancedflashLog.Text += "\nInvalid image path.";
+                AdvancedflashLog.Text += "\nInvalid image path."; 
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
             if (isUrl && _parsedFileType != ParsedFileType.PayloadUrl)
             {
-                AdvancedflashLog.Text += "\nCurrent URL is not in payload_url mode.";
+                AdvancedflashLog.Text += "\nCurrent URL is not in payload_url mode."; 
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_UrlNotPayload")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
@@ -691,7 +705,8 @@ public partial class AdvancedflashView : UserControl
             var selectedParts = vm.FalshPartModel.Where(x => x.Select).ToList();
             if (selectedParts.Count == 0)
             {
-                AdvancedflashLog.Text += "\nNo partition selected.";
+                AdvancedflashLog.Text += "\nNo partition selected."; 
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_NoPart")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
@@ -710,7 +725,8 @@ public partial class AdvancedflashView : UserControl
                     await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts.Select(x => x.Name).ToArray());
                     break;
                 default:
-                    AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
+                    AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first."; 
+                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Unsupport")).Dismiss().ByClickingBackground().TryShow();
                     return;
             }
 
@@ -726,11 +742,13 @@ public partial class AdvancedflashView : UserControl
                 }
             }
             FileHelper.OpenFolder(Path.Combine(outputDir));
-            AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{selectedParts.Count} -> {outputDir}";
+            AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{selectedParts.Count} -> {outputDir}"; 
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
         }
         catch (Exception ex)
         {
-            AdvancedflashLog.Text += $"Error: {ex.Message}";
+            AdvancedflashLog.Text += $"Error: {ex.Message}"; 
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
         }
         finally
         {
@@ -1130,7 +1148,7 @@ public partial class AdvancedflashView : UserControl
         if (string.IsNullOrWhiteSpace(File.Text))
         {
             AdvancedflashLog.Text += "\nInvalid selected file path.";
-            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent("请选择文件/文件夹或输入链接").Dismiss().ByClickingBackground().TryShow();
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
             return;
         }
 
@@ -1138,8 +1156,8 @@ public partial class AdvancedflashView : UserControl
         var selectedParts = vm.FalshPartModel.Where(x => x.Select).ToList();
         if (selectedParts.Count == 0)
         {
-            AdvancedflashLog.Text += "\nNo partition selected.";
-            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent("请选择分区").Dismiss().ByClickingBackground().TryShow();
+            AdvancedflashLog.Text += "\nNo partition selected."; 
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_NoPart")).Dismiss().ByClickingBackground().TryShow();
             return;
         }
 
@@ -1243,7 +1261,7 @@ public partial class AdvancedflashView : UserControl
                                 Global.checkdevice = true;
                                 return;
                             }
-                            AdvancedflashLog.Text += "\n注意！出现错误 Attention! An error occurred";
+                            AdvancedflashLog.Text += "\n注意！出现错误 Attention! An error occurred\n";
                         }
                     }
                 }
@@ -1266,18 +1284,21 @@ public partial class AdvancedflashView : UserControl
                 if (string.IsNullOrWhiteSpace(sourcePath))
                 {
                     AdvancedflashLog.Text += "\nInvalid image path.";
+                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                     return;
                 }
 
                 if (!isUrl && !System.IO.File.Exists(sourcePath))
                 {
                     AdvancedflashLog.Text += "\nInvalid image path.";
+                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                     return;
                 }
 
                 if (isUrl && _parsedFileType != ParsedFileType.PayloadUrl)
                 {
                     AdvancedflashLog.Text += "\nCurrent URL is not in payload_url mode.";
+                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_UrlNotPayload")).Dismiss().ByClickingBackground().TryShow();
                     return;
                 }
 
@@ -1299,6 +1320,7 @@ public partial class AdvancedflashView : UserControl
                             break;
                         default:
                             AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
+                            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_Unsupport")).Dismiss().ByClickingBackground().TryShow();
                             return;
                     }
 
@@ -1313,7 +1335,7 @@ public partial class AdvancedflashView : UserControl
                             successCount++;
                         }
                     }
-                    AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{extractParts.Count} -> {outputDir}\n开始刷入...";
+                    AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{extractParts.Count} -> {outputDir}\nFlashing...\n";
                 }
                 
                 Global.checkdevice = false;
@@ -1374,6 +1396,7 @@ public partial class AdvancedflashView : UserControl
             catch (Exception ex)
             {
                 AdvancedflashLog.Text += $"Error: {ex.Message}";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
             }
             finally
             {
@@ -1457,18 +1480,21 @@ public partial class AdvancedflashView : UserControl
             if (string.IsNullOrWhiteSpace(sourcePath))
             {
                 AdvancedflashLog.Text += "\nInvalid image path.";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
             if (!isUrl && !System.IO.File.Exists(sourcePath))
             {
                 AdvancedflashLog.Text += "\nInvalid image path.";
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_SelectTip")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
             if (isUrl || _parsedFileType == ParsedFileType.Super)
             {
-                AdvancedflashLog.Text += "一键转为线刷包仅支持本地完整卡刷包";
+                AdvancedflashLog.Text += GetTranslation("Advancedflash_NeedFullPkg");
+                Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_NeedFullPkg")).Dismiss().ByClickingBackground().TryShow();
                 return;
             }
 
@@ -1484,11 +1510,13 @@ public partial class AdvancedflashView : UserControl
             var partlist = string.Join("\r\n", selectedParts.Select(x => x.Name).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray());
             FileHelper.Write(outtxtDir, partlist);
             FileHelper.OpenFolder(Path.Combine(outputDir));
-            AdvancedflashLog.Text += "提取完成";
+            AdvancedflashLog.Text += GetTranslation("Common_Execution");
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Succ")).OfType(NotificationType.Success).WithContent(GetTranslation("Common_Execution")).Dismiss().ByClickingBackground().TryShow();
         }
         catch (Exception ex)
         {
             AdvancedflashLog.Text += $"Error: {ex.Message}";
+            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
         }
         finally
         {

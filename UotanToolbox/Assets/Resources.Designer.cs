@@ -214,6 +214,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 File not found. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_FileNotFound {
+            get {
+                return ResourceManager.GetString("Advancedflash_FileNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 File/Folder: 的本地化字符串。
         /// </summary>
         public static string Advancedflash_FileOrFolder {
@@ -241,11 +250,38 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Invalid operation 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Invalid {
+            get {
+                return ResourceManager.GetString("Advancedflash_Invalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Advanced flash 的本地化字符串。
         /// </summary>
         public static string Advancedflash_Name {
             get {
                 return ResourceManager.GetString("Advancedflash_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 One-click conversion to flashable zip only supports local full SD card flashable zip. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_NeedFullPkg {
+            get {
+                return ResourceManager.GetString("Advancedflash_NeedFullPkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 No partition selected. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_NoPart {
+            get {
+                return ResourceManager.GetString("Advancedflash_NoPart", resourceCulture);
             }
         }
         
@@ -295,6 +331,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Please select a file or enter a link. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_SelectTip {
+            get {
+                return ResourceManager.GetString("Advancedflash_SelectTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Set other 的本地化字符串。
         /// </summary>
         public static string Advancedflash_SetOther {
@@ -327,6 +372,33 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_ToWiredPkg {
             get {
                 return ResourceManager.GetString("Advancedflash_ToWiredPkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 An unexpected error occurred 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Unexpected {
+            get {
+                return ResourceManager.GetString("Advancedflash_Unexpected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Unsupported format! 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Unsupport {
+            get {
+                return ResourceManager.GetString("Advancedflash_Unsupport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Current URL is not in payload_url mode. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_UrlNotPayload {
+            get {
+                return ResourceManager.GetString("Advancedflash_UrlNotPayload", resourceCulture);
             }
         }
         

@@ -1780,4 +1780,28 @@ ADB下填写序号，一次一个！</value>
   <data name="Common_Executing" xml:space="preserve">
     <value>执行中...</value>
   </data>
+  <data name="Advancedflash_SelectTip" xml:space="preserve">
+    <value>请选择文件或输入链接</value>
+  </data>
+  <data name="Advancedflash_Unsupport" xml:space="preserve">
+    <value>不支持的格式！</value>
+  </data>
+  <data name="Advancedflash_FileNotFound" xml:space="preserve">
+    <value>未找到文件</value>
+  </data>
+  <data name="Advancedflash_Invalid" xml:space="preserve">
+    <value>无效操作</value>
+  </data>
+  <data name="Advancedflash_Unexpected" xml:space="preserve">
+    <value>出现意外的错误</value>
+  </data>
+  <data name="Advancedflash_UrlNotPayload" xml:space="preserve">
+    <value>当前URL不是Payload文件</value>
+  </data>
+  <data name="Advancedflash_NoPart" xml:space="preserve">
+    <value>没有选择分区操作</value>
+  </data>
+  <data name="Advancedflash_NeedFullPkg" xml:space="preserve">
+    <value>一键转为线刷包仅支持本地完整卡刷包</value>
+  </data>
 </root>
