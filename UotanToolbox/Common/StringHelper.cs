@@ -283,7 +283,7 @@ namespace UotanToolbox.Common
             string[] Lines = info.Split(separator, StringSplitOptions.RemoveEmptyEntries);
             for (int i = 0; i < Lines.Length; i++)
             {
-                if (!Lines[i].Contains("Max charging voltage") && !Lines[i].Contains("Charger voltage"))
+                if (!Lines[i].Contains("Max charging voltage") && !Lines[i].Contains("Charger voltage") && !Lines[i].Contains("the voltage was") && !Lines[i].Contains("last voltage value"))
                 {
                     if (Lines[i].Contains("level") || Lines[i].Contains("voltage") || Lines[i].Contains("temperature"))
                     {
