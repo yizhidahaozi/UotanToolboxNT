@@ -317,7 +317,19 @@ public partial class WiredflashView : UserControl
                                     WiredflashLog.Text += GetTranslation("Wiredflash_RepairBoot");
                                     Global.Bootinfo = await ImageDetect.Boot_Detect($"{imgpath}/{fbflashparts[i]}.img");
                                     Global.Zipinfo = await PatchDetect.Patch_Detect(Global.MagiskAPKPath);
-                                    string newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                                    string newboot = null;
+                                    switch (Global.Zipinfo.Mode)
+                                    {
+                                        case PatchMode.Magisk:
+                                            newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                                            break;
+                                        case PatchMode.GKI:
+                                            newboot = await KernelSUPatch.GKI_Patch(Global.Zipinfo, Global.Bootinfo);
+                                            break;
+                                        case PatchMode.LKM:
+                                            newboot = await KernelSUPatch.LKM_Patch(Global.Zipinfo, Global.Bootinfo);
+                                            break;
+                                    }
                                     await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} {newboot}");
                                 }
                                 else if (fbflashparts[i].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
@@ -406,7 +418,7 @@ public partial class WiredflashView : UserControl
                         }
                         string slot = "";
                         FileHelper.Write(update_status, await Fastboot($"-s {Global.thisdevice} getvar snapshot-update-status"));
-                        string active = await Fastboot($"-s {Global.thisdevice} getvar current-slot");
+                        string active = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar current-slot");
                         if (active.Contains("current-slot: a"))
                         {
                             slot = "_a";

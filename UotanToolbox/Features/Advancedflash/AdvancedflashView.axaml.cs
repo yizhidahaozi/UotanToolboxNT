@@ -16,8 +16,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
@@ -562,7 +564,6 @@ public partial class AdvancedflashView : UserControl
         {
             string? folderPath = files[0].TryGetLocalPath();
             File.Text = folderPath;
-
             BusyFlash.IsBusy = true;
             try
             {
@@ -927,6 +928,7 @@ public partial class AdvancedflashView : UserControl
             if (existingImages.Contains(expectedImage))
             {
                 item.FileName = expectedImage;
+                item.FullFilePath = Path.Combine(unpackDir, expectedImage);
                 matched++;
             }
         }
@@ -998,7 +1000,13 @@ public partial class AdvancedflashView : UserControl
         });
         if (file.Count >= 1)
         {
-            falshPartModel.FileName = Path.GetFileName(StringHelper.FilePath(file[0].Path.ToString() ?? string.Empty));
+            var path = StringHelper.FilePath(file[0].Path.ToString() ?? string.Empty);
+            falshPartModel.FileName = Path.GetFileName(path);
+            falshPartModel.FullFilePath = path;
+            if (System.IO.File.Exists(path))
+            {
+                falshPartModel.Size = StringHelper.byte2AUnit((ulong)new System.IO.FileInfo(path).Length);
+            }
         }
     }
 
@@ -1140,6 +1148,7 @@ public partial class AdvancedflashView : UserControl
         {
             string path = File.Text;
             Global.checkdevice = false;
+            AdvancedflashLog.Text = "";
             SetEnabled(true);
 
             var extension = Path.GetExtension(path);
@@ -1152,13 +1161,27 @@ public partial class AdvancedflashView : UserControl
                 {
                     if (item.Select == true)
                     {
+                        string slot = "";
+                        string active = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar current-slot");
+                        if (active.Contains("current-slot: a"))
+                        {
+                            slot = "_a";
+                        }
+                        else if (active.Contains("current-slot: b"))
+                        {
+                            slot = "_b";
+                        }
+                        else
+                        {
+                            slot = null;
+                        }
                         if (item.Command == "create")
                         {
-                            await Fastboot($"-s {Global.thisdevice} create-logical-partition {item.Name} 00");
+                            await Fastboot($"-s {Global.thisdevice} create-logical-partition {item.Name}{slot} 00");
                         }
                         else if (item.Command == "delete")
                         {
-                            await Fastboot($"-s {Global.thisdevice} delete-logical-partition {item.Name}");
+                            await Fastboot($"-s {Global.thisdevice} delete-logical-partition {item.Name}{slot}");
                         }
                         else if (item.Name == "super_empty")
                         {
@@ -1191,7 +1214,19 @@ public partial class AdvancedflashView : UserControl
                             AdvancedflashLog.Text += GetTranslation("Wiredflash_RepairBoot");
                             Global.Bootinfo = await ImageDetect.Boot_Detect(item.FullFilePath);
                             Global.Zipinfo = await PatchDetect.Patch_Detect(Global.MagiskAPKPath);
-                            string newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                            string newboot = null;
+                            switch (Global.Zipinfo.Mode)
+                            {
+                                case PatchMode.Magisk:
+                                    newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                                case PatchMode.GKI:
+                                    newboot = await KernelSUPatch.GKI_Patch(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                                case PatchMode.LKM:
+                                    newboot = await KernelSUPatch.LKM_Patch(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                            }
                             await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} {newboot}");
                         }
                         else
@@ -1246,46 +1281,43 @@ public partial class AdvancedflashView : UserControl
                     return;
                 }
 
-                selectedParts = vm.FalshPartModel.Where(x => x.Select && string.IsNullOrWhiteSpace(x.FullFilePath)).ToList();
-                if (selectedParts.Count == 0)
-                {
-                    AdvancedflashLog.Text += "\nNo partition selected.";
-                    Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent("请选择分区").Dismiss().ByClickingBackground().TryShow();
-                    return;
-                }
-
+                var extractParts = vm.FalshPartModel.Where(x => x.Select && string.IsNullOrWhiteSpace(x.FullFilePath)).ToList();
                 var outputDir = GetUnpackOutputDir(sourcePath, isUrl);
                 Directory.CreateDirectory(outputDir);
-
-                switch (_parsedFileType)
+                if (extractParts.Count > 0)
                 {
-                    case ParsedFileType.Payload:
-                        await ExtractPayloadSelectedAsync(sourcePath, outputDir, selectedParts);
-                        break;
-                    case ParsedFileType.Super:
-                        await ExtractSuperSelectedAsync(sourcePath, outputDir, selectedParts);
-                        break;
-                    case ParsedFileType.PayloadUrl:
-                        await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, selectedParts.Select(x => x.Name).ToArray());
-                        break;
-                    default:
-                        AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
-                        return;
-                }
-
-                var successCount = 0;
-                foreach (var item in selectedParts)
-                {
-                    var outPath = Path.Combine(outputDir, $"{item.Name}.img");
-                    if (System.IO.File.Exists(outPath))
+                    switch (_parsedFileType)
                     {
-                        item.FileName = Path.GetFileName(outPath);
-                        item.FullFilePath = outPath;
-                        successCount++;
+                        case ParsedFileType.Payload:
+                            await ExtractPayloadSelectedAsync(sourcePath, outputDir, extractParts);
+                            break;
+                        case ParsedFileType.Super:
+                            await ExtractSuperSelectedAsync(sourcePath, outputDir, extractParts);
+                            break;
+                        case ParsedFileType.PayloadUrl:
+                            await ExtractPayloadUrlSelectedAsync(sourcePath, outputDir, extractParts.Select(x => x.Name).ToArray());
+                            break;
+                        default:
+                            AdvancedflashLog.Text += "\nUnknown image type. Please re-open image file first.";
+                            return;
                     }
-                }
-                AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{selectedParts.Count} -> {outputDir}";
 
+                    var successCount = 0;
+                    foreach (var item in extractParts)
+                    {
+                        var outPath = Path.Combine(outputDir, $"{item.Name}.img");
+                        if (System.IO.File.Exists(outPath))
+                        {
+                            item.FileName = Path.GetFileName(outPath);
+                            item.FullFilePath = outPath;
+                            successCount++;
+                        }
+                    }
+                    AdvancedflashLog.Text += $"\nExtract finished: {successCount}/{extractParts.Count} -> {outputDir}\n开始刷入...";
+                }
+                
+                Global.checkdevice = false;
+                AdvancedflashLog.Text = "";
                 foreach (var item in vm.FalshPartModel)
                 {
                     if (item.Select == true)
@@ -1299,7 +1331,19 @@ public partial class AdvancedflashView : UserControl
                             AdvancedflashLog.Text += GetTranslation("Wiredflash_RepairBoot");
                             Global.Bootinfo = await ImageDetect.Boot_Detect(item.FullFilePath);
                             Global.Zipinfo = await PatchDetect.Patch_Detect(Global.MagiskAPKPath);
-                            string newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                            string newboot = null;
+                            switch (Global.Zipinfo.Mode)
+                            {
+                                case PatchMode.Magisk:
+                                    newboot = await MagiskPatch.Magisk_Patch_Mouzei(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                                case PatchMode.GKI:
+                                    newboot = await KernelSUPatch.GKI_Patch(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                                case PatchMode.LKM:
+                                    newboot = await KernelSUPatch.LKM_Patch(Global.Zipinfo, Global.Bootinfo);
+                                    break;
+                            }
                             await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} {newboot}");
                         }
                         else
@@ -1317,6 +1361,7 @@ public partial class AdvancedflashView : UserControl
                         }
                     }
                 }
+                Global.checkdevice = true;
                 Global.MainDialogManager.CreateDialog()
                                 .WithTitle(GetTranslation("Common_Succ"))
                                 .WithContent(GetTranslation("Wiredflash_ROMFlash"))
@@ -1431,14 +1476,15 @@ public partial class AdvancedflashView : UserControl
             var selectedParts = vm.FalshPartModel.ToList();
 
             var parentDir = Path.GetDirectoryName(sourcePath) ?? Directory.GetCurrentDirectory();
-            var outtxtDir = Path.Combine(parentDir, $"UotanToolbox_{Path.GetFileName(sourcePath)}");
+            var outtxtDir = Path.Combine(parentDir, $"UotanToolbox_{Path.GetFileName(sourcePath)}", "flash_fastbootd.txt");
             var outputDir = Path.Combine(parentDir, $"UotanToolbox_{Path.GetFileName(sourcePath)}","images");
             Directory.CreateDirectory(outputDir);
-            await ExtractPayloadSelectedAsync(sourcePath, outputDir, selectedParts);
+            //await ExtractPayloadSelectedAsync(sourcePath, outputDir, selectedParts);
 
-            var partlist = string.Join("\r\n", selectedParts);
+            var partlist = string.Join("\r\n", selectedParts.Select(x => x.Name).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray());
             FileHelper.Write(outtxtDir, partlist);
             FileHelper.OpenFolder(Path.Combine(outputDir));
+            AdvancedflashLog.Text += "提取完成";
         }
         catch (Exception ex)
         {
