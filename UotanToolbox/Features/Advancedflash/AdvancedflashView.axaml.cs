@@ -901,19 +901,11 @@ public partial class AdvancedflashView : UserControl
                 name = "payload_url";
             }
 
-            return Path.Combine(GetBackupRootDir(), $"{name}-unpack");
+            return Path.Combine(Global.backup_path, $"{name}-unpack");
         }
 
         var parentDir = Path.GetDirectoryName(sourcePath) ?? Directory.GetCurrentDirectory();
         return Path.Combine(parentDir, $"{Path.GetFileName(sourcePath)}-unpack");
-    }
-
-    private static string GetBackupRootDir()
-    {
-        var toolboxDir = AppContext.BaseDirectory;
-        var backupDir = Path.Combine(toolboxDir, "backup");
-        Directory.CreateDirectory(backupDir);
-        return backupDir;
     }
 
     private void TrySyncFileNamesFromUnpackFolder(string sourcePath, bool isUrl = false)

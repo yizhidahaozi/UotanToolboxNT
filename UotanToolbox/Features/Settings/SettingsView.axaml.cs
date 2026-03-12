@@ -42,6 +42,8 @@ public partial class SettingsView : UserControl
         {
             CsvPath.Text = files[0].TryGetLocalPath() ?? string.Empty;
             Global.BootPatchPath = CsvPath.Text ?? string.Empty;
+            UotanToolbox.Settings.Default.BootPatchPath = Global.BootPatchPath;
+            UotanToolbox.Settings.Default.Save();
         }
     }
 
@@ -64,6 +66,9 @@ public partial class SettingsView : UserControl
             if (!string.IsNullOrWhiteSpace(localPath) && FileHelper.TestPermission(localPath))
             {
                 BackPath.Text = localPath;
+                Global.backup_path = localPath;
+                UotanToolbox.Settings.Default.BackupPath = Global.backup_path;
+                UotanToolbox.Settings.Default.Save();
             }
             else
             {

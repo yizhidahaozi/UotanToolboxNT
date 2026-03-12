@@ -78,6 +78,17 @@ internal static class Program
         {
             Global.MagiskAPKPath = Path.Combine(Global.runpath, "APK", "Magisk-v30.6.apk");
         }
+        // Override with persisted user settings if available
+        if (!string.IsNullOrEmpty(UotanToolbox.Settings.Default.BootPatchPath)
+            && File.Exists(UotanToolbox.Settings.Default.BootPatchPath))
+        {
+            Global.BootPatchPath = UotanToolbox.Settings.Default.BootPatchPath;
+        }
+        if (!string.IsNullOrEmpty(UotanToolbox.Settings.Default.BackupPath)
+            && Directory.Exists(UotanToolbox.Settings.Default.BackupPath))
+        {
+            Global.backup_path = UotanToolbox.Settings.Default.BackupPath;
+        }
         // No need to set default for Windows
         return AppBuilder.Configure<App>()
                          .UsePlatformDetect()

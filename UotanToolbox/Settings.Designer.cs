@@ -58,5 +58,29 @@ namespace UotanToolbox {
                 this["UseNative"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string BootPatchPath {
+            get {
+                return ((string)(this["BootPatchPath"]));
+            }
+            set {
+                this["BootPatchPath"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string BackupPath {
+            get {
+                return ((string)(this["BackupPath"]));
+            }
+            set {
+                this["BackupPath"] = value;
+            }
+        }
     }
 }
