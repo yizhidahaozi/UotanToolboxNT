@@ -75,6 +75,7 @@ public partial class App : Application
         services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.AdbTransport>();
         services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.FastbootTransport>();
         services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.HdcTransport>();
+        services.AddSingleton<UotanToolbox.Common.Devices.IDeviceTransport, UotanToolbox.Common.Devices.EdlTransport>();
 
         // device manager singleton
         services.AddSingleton<UotanToolbox.Common.Devices.DeviceManager>(sp =>
