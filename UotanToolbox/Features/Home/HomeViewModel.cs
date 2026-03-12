@@ -159,9 +159,11 @@ public partial class HomeViewModel : MainPageBase, IDisposable
 
     private void DeviceManager_DeviceAdded(object? sender, UotanToolbox.Common.Devices.DeviceEventArgs e)
     {
+        CommonDevicesList = true;
         // background polling should only update the device dropdown unless nothing is selected yet
         bool shouldRefreshDetails = string.IsNullOrWhiteSpace(Global.thisdevice);
         _ = GetDevicesList(showWarning: false, preferredSelection: null, resetWhenEmpty: true, rescan: false, refreshDetails: shouldRefreshDetails);
+        CommonDevicesList = false;
         Global.MainToastManager?.CreateToast()
             .WithTitle(GetTranslation("Home_Prompt"))
             .WithContent(string.Format(GetTranslation("Home_DeviceConnected"), e.Device.Id))
@@ -270,7 +272,6 @@ public partial class HomeViewModel : MainPageBase, IDisposable
         var devices = Global.DeviceManager.Devices.Select(d => d.Id).ToArray();
         if (devices.Length != 0)
         {
-            CommonDevicesList = true;
             Global.deviceslist = new AvaloniaList<string>(devices);
             SimpleContent = Global.deviceslist;
 
@@ -296,14 +297,12 @@ public partial class HomeViewModel : MainPageBase, IDisposable
             {
                 await ApplySelectionAndRefreshAsync(selection);
             }
-            CommonDevicesList = false;
             return true;
         }
         else
         {
             if (resetWhenEmpty)
             {
-                CommonDevicesList = true;
                 // no devices remain: clear dropdown + home info to startup state
                 Global.deviceslist = new AvaloniaList<string>();
                 SimpleContent = Global.deviceslist;
@@ -312,7 +311,6 @@ public partial class HomeViewModel : MainPageBase, IDisposable
                 SelectedSimpleContent = string.Empty;
                 _isApplyingSelection = false;
                 ResetDeviceInfo();
-                CommonDevicesList = false;
             }
 
             if (showWarning)
