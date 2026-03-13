@@ -89,6 +89,7 @@ public partial class AdvancedflashView : UserControl
         if (Set)
         {
             BusyFlash.IsBusy = true;
+            ImgList.IsEnabled = false;
             Read.IsEnabled = false;
             FlashSelectBut.IsEnabled = false;
             Erase.IsEnabled = false;
@@ -99,6 +100,7 @@ public partial class AdvancedflashView : UserControl
         else
         {
             BusyFlash.IsBusy = false;
+            ImgList.IsEnabled = true;
             Read.IsEnabled = true;
             FlashSelectBut.IsEnabled = true;
             Erase.IsEnabled = true;
@@ -174,6 +176,12 @@ public partial class AdvancedflashView : UserControl
             ?? throw new InvalidOperationException("DataContext is not AdvancedflashViewModel.");
     }
 
+    private static FilePickerFileType FlashPicker { get; } = new("File")
+    {
+        Patterns = new[] { "*.img", "*.bin","*.zip", "*.txt", "*.bat", ".sh" },
+        AppleUniformTypeIdentifiers = new[] { "*.img", "*.bin", "*.zip", "*.txt", "*.bat", ".sh" }
+    };
+
     private async void OpenFile(object sender, RoutedEventArgs args)
     {
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
@@ -185,7 +193,8 @@ public partial class AdvancedflashView : UserControl
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open Image File",
-            AllowMultiple = false
+            AllowMultiple = false,
+            FileTypeFilter = new[] { FlashPicker }
         });
         if (files.Count >= 1)
         {
@@ -955,7 +964,15 @@ public partial class AdvancedflashView : UserControl
         {
             foreach (var item in GetViewModel().FalshPartModel)
             {
-                item.Select = true;
+                if(!item.SelectDis == false)
+                {
+                    if (item.Name.Contains("crc") && UotanToolbox.Settings.Default.UseNative)
+                    {
+                        Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Warn")).OfType(NotificationType.Error).WithContent(GetTranslation("Advancedflash_CantCRC")).Dismiss().ByClickingBackground().TryShow();
+                        continue;
+                    }
+                    item.Select = true;
+                }
             }
         }
         else
@@ -978,11 +995,27 @@ public partial class AdvancedflashView : UserControl
 
     private async void Selected(object sender, RoutedEventArgs args)
     {
+        if (sender is CheckBox checkBox && checkBox.DataContext is FalshPartModel item)
+        {
+            await Task.Delay(100);
+            if (item.Name.Contains("crc") && UotanToolbox.Settings.Default.UseNative && item.Select == true)
+            {
+                // 强制取消选中
+                checkBox.IsChecked = false;
+                item.Select = false;
+                Global.MainDialogManager.CreateDialog()
+                    .WithTitle(GetTranslation("Common_Warn"))
+                    .OfType(NotificationType.Error)
+                    .WithContent(GetTranslation("Advancedflash_CantCRC"))
+                    .Dismiss().ByClickingBackground().TryShow();
+            }
+        }
+
         await Task.Delay(100);
         int total = 0;
-        foreach (var item in GetViewModel().FalshPartModel)
+        foreach (var part in GetViewModel().FalshPartModel)
         {
-            if (item.Select == true)
+            if (part.Select == true)
             {
                 total++;
             }
@@ -1159,6 +1192,7 @@ public partial class AdvancedflashView : UserControl
             string path = File.Text;
             Global.checkdevice = false;
             AdvancedflashLog.Text = "";
+            output = "";
             SetEnabled(true);
 
             var extension = Path.GetExtension(path);
@@ -1184,6 +1218,10 @@ public partial class AdvancedflashView : UserControl
                         else
                         {
                             slot = null;
+                        }
+                        if (item.Name.Contains("crc") && UotanToolbox.Settings.Default.UseNative)
+                        {
+                            continue;
                         }
                         if (item.Command == "create")
                         {
@@ -1332,6 +1370,7 @@ public partial class AdvancedflashView : UserControl
                 
                 Global.checkdevice = false;
                 AdvancedflashLog.Text = "";
+                output = "";
                 foreach (var item in vm.FalshPartModel)
                 {
                     if (item.Select == true)
@@ -1412,8 +1451,8 @@ public partial class AdvancedflashView : UserControl
         {
             SetEnabled(true);
             Global.MainDialogManager.CreateDialog()
-                            .WithTitle("警告！")
-                            .WithContent("此操作将清楚选中分区内全部数据，确认执行？")
+                            .WithTitle(GetTranslation("Common_Warn"))
+                            .WithContent(GetTranslation("Advancedflash_ClaerCof"))
                             .OfType(NotificationType.Success)
                             .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ => 
                             {
@@ -1518,12 +1557,6 @@ public partial class AdvancedflashView : UserControl
 
     private async void Export(object sender, RoutedEventArgs args)
     {
-        Global.MainDialogManager.CreateDialog()
-                                .WithTitle(GetTranslation("Common_Error"))
-                                .OfType(NotificationType.Error)
-                                .WithContent("敬请期待")
-                                .Dismiss().ByClickingBackground()
-                                .TryShow();
         //string selectedType = ExportScr.SelectedItem as string;
         //if (!string.IsNullOrEmpty(selectedType))
         //{

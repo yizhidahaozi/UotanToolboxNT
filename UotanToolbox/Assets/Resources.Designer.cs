@@ -133,6 +133,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 C# native Fastboot currently cannot perform CRC checks. If you need to use it, please go to the settings page and disable it. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_CantCRC {
+            get {
+                return ResourceManager.GetString("Advancedflash_CantCRC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Change image 的本地化字符串。
         /// </summary>
         public static string Advancedflash_ChangeImg {
@@ -156,6 +165,15 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_ChooseFolder {
             get {
                 return ResourceManager.GetString("Advancedflash_ChooseFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 This operation will clearly select all data within the partition. Confirm execution? 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_ClaerCof {
+            get {
+                return ResourceManager.GetString("Advancedflash_ClaerCof", resourceCulture);
             }
         }
         
@@ -322,7 +340,7 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
-        ///   查找类似 can select paylod.bin super.img .txt .bat .sh .xml files,image folder, or zip link. 的本地化字符串。
+        ///   查找类似 can select paylod.bin super.img .txt .bat .sh files,image folder, or zip link. 的本地化字符串。
         /// </summary>
         public static string Advancedflash_SelectFile {
             get {
@@ -4611,6 +4629,24 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Enable Debug mode for native dependencies 的本地化字符串。
+        /// </summary>
+        public static string Settings_Debug {
+            get {
+                return ResourceManager.GetString("Settings_Debug", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Whether to enable Debug mode for native dependencies. This only applies to native dependencies. Enabling it may cause the UI to freeze due to excessive output. 的本地化字符串。
+        /// </summary>
+        public static string Settings_DebugTip {
+            get {
+                return ResourceManager.GetString("Settings_DebugTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Default 的本地化字符串。
         /// </summary>
         public static string Settings_Default {
@@ -4787,6 +4823,15 @@ namespace UotanToolbox.Assets {
         public static string Settings_UseNativeText {
             get {
                 return ResourceManager.GetString("Settings_UseNativeText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Please note that the native dependencies are currently unstable and unexpected issues may occur! 的本地化字符串。
+        /// </summary>
+        public static string Settings_UseNativeTip {
+            get {
+                return ResourceManager.GetString("Settings_UseNativeTip", resourceCulture);
             }
         }
         

@@ -38,7 +38,8 @@ public partial class SettingsViewModel : MainPageBase
     [ObservableProperty] private SukiBackgroundStyle _backgroundStyle;
     [ObservableProperty] private bool _backgroundAnimations;
     [ObservableProperty] private bool _backgroundTransitions;
-    [ObservableProperty] private bool _useNative = true;
+    [ObservableProperty] private bool _useNative = false;
+    [ObservableProperty] private bool _useDebug = false;
     [ObservableProperty] private string _currentVersion = Global.currentVersion;
     [ObservableProperty] private string _binVersion = string.Empty;
     [ObservableProperty] private string _csvPath = Global.BootPatchPath;
@@ -123,6 +124,26 @@ public partial class SettingsViewModel : MainPageBase
     {
         UotanToolbox.Settings.Default.UseNative = value;
         UotanToolbox.Settings.Default.Save();
+        if (value)
+        {
+            Global.MainDialogManager.CreateDialog()
+                    .WithTitle(GetTranslation("Common_Warn"))
+                    .OfType(NotificationType.Error)
+                    .WithContent(GetTranslation("Settings_UseNativeTip"))
+                    .Dismiss().ByClickingBackground().TryShow();
+        }
+    }
+
+    partial void OnUseDebugChanged(bool value)
+    {
+        if (value)
+        {
+            Environment.SetEnvironmentVariable("FASTBOOT_DEBUG", "1");
+        }
+        else
+        {
+            Environment.SetEnvironmentVariable("FASTBOOT_DEBUG", "0");
+        }
     }
 
     partial void OnBackgroundStyleChanged(SukiBackgroundStyle value) =>

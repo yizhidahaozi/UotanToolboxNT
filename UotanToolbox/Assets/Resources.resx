@@ -1706,7 +1706,7 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
     <value>File/Folder:</value>
   </data>
   <data name="Advancedflash_SelectFile" xml:space="preserve">
-    <value>can select paylod.bin super.img .txt .bat .sh .xml files,image folder, or zip link.</value>
+    <value>can select paylod.bin super.img .txt .bat .sh files,image folder, or zip link.</value>
   </data>
   <data name="Advancedflash_Selected" xml:space="preserve">
     <value>Total:</value>
@@ -1803,5 +1803,20 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   </data>
   <data name="Advancedflash_NeedFullPkg" xml:space="preserve">
     <value>One-click conversion to flashable zip only supports local full SD card flashable zip.</value>
+  </data>
+  <data name="Advancedflash_CantCRC" xml:space="preserve">
+    <value>C# native Fastboot currently cannot perform CRC checks. If you need to use it, please go to the settings page and disable it.</value>
+  </data>
+  <data name="Advancedflash_ClaerCof" xml:space="preserve">
+    <value>This operation will clearly select all data within the partition. Confirm execution?</value>
+  </data>
+  <data name="Settings_Debug" xml:space="preserve">
+    <value>Enable Debug mode for native dependencies</value>
+  </data>
+  <data name="Settings_DebugTip" xml:space="preserve">
+    <value>Whether to enable Debug mode for native dependencies. This only applies to native dependencies. Enabling it may cause the UI to freeze due to excessive output.</value>
+  </data>
+  <data name="Settings_UseNativeTip" xml:space="preserve">
+    <value>Please note that the native dependencies are currently unstable and unexpected issues may occur!</value>
   </data>
 </root>

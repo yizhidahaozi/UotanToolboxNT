@@ -139,6 +139,21 @@
 								<ToggleButton VerticalAlignment="Top"
 											  Classes="Switch"
 											  DockPanel.Dock="Right"
+											  IsChecked="{Binding UseDebug}" />
+								<StackPanel HorizontalAlignment="Left">
+									<TextBlock FontSize="16"
+											   FontWeight="DemiBold"
+											   Text="{x:Static assets:Resources.Settings_Debug}" />
+									<TextBlock Margin="0,12,70,0" Width="650"
+											   Foreground="{DynamicResource SukiLowText}"
+											   Text="{x:Static assets:Resources.Settings_DebugTip}"
+											   TextWrapping="Wrap"/>
+								</StackPanel>
+							</DockPanel>
+							<DockPanel>
+								<ToggleButton VerticalAlignment="Top"
+											  Classes="Switch"
+											  DockPanel.Dock="Right"
 											  IsChecked="{Binding BackgroundAnimations}" />
 								<StackPanel HorizontalAlignment="Left">
 									<TextBlock FontSize="16"

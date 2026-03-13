@@ -1706,7 +1706,7 @@ ADB下填写序号，一次一个！</value>
     <value>选择文件/目录:</value>
   </data>
   <data name="Advancedflash_SelectFile" xml:space="preserve">
-    <value>可选择paylod.bin super.img .txt .bat .sh .xml文件或镜像目录或卡刷包链接</value>
+    <value>可选择paylod.bin super.img .txt .bat .sh 文件或镜像目录或卡刷包链接</value>
   </data>
   <data name="Advancedflash_Selected" xml:space="preserve">
     <value>已选择:</value>
@@ -1803,5 +1803,20 @@ ADB下填写序号，一次一个！</value>
   </data>
   <data name="Advancedflash_NeedFullPkg" xml:space="preserve">
     <value>一键转为线刷包仅支持本地完整卡刷包</value>
+  </data>
+  <data name="Advancedflash_CantCRC" xml:space="preserve">
+    <value>C#原生Fastboot目前无法完成CRC校验，如需使用请前往设置页面关闭</value>
+  </data>
+  <data name="Advancedflash_ClaerCof" xml:space="preserve">
+    <value>此操作将清楚选中分区内全部数据，确认执行？</value>
+  </data>
+  <data name="Settings_Debug" xml:space="preserve">
+    <value>为原生依赖启用Debug模式</value>
+  </data>
+  <data name="Settings_DebugTip" xml:space="preserve">
+    <value>是否为原生依赖启用Debug模式，仅针对原生依赖有效，启用后大量输出内容可能会导致UI假死。</value>
+  </data>
+  <data name="Settings_UseNativeTip" xml:space="preserve">
+    <value>请注意原生依赖当前存在不稳定情况可能出现意外情况！</value>
   </data>
 </root>

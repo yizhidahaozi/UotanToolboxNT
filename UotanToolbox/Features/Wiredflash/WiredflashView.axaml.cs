@@ -431,7 +431,7 @@ public partial class WiredflashView : UserControl
                         {
                             slot = null;
                         }
-                        string cow = await Fastboot($"-s {Global.thisdevice} getvar all");
+                        string cow = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
                         string[] cowparts = FeaturesHelper.GetVPartList(cow);
                         for (int i = 0; i < cowparts.Length; i++)
                         {
@@ -457,7 +457,7 @@ public partial class WiredflashView : UserControl
                             {
                                 deleteslot = "_a";
                             }
-                            string part = await Fastboot($"-s {Global.thisdevice} getvar all");
+                            string part = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
                             string[] deleteslotparts = FeaturesHelper.GetVPartList(part);
                             for (int i = 0; i < deleteslotparts.Length; i++)
                             {
@@ -475,7 +475,7 @@ public partial class WiredflashView : UserControl
                         }
                         if (succ)
                         {
-                            string part = await Fastboot($"-s {Global.thisdevice} getvar all");
+                            string part = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
                             string[] vparts = FeaturesHelper.GetVPartList(part);
                             for (int i = 0 + c; i < fbdflashparts.Length; i++)
                             {
