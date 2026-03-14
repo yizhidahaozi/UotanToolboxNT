@@ -349,65 +349,44 @@ namespace UotanToolbox.Common
         /// <returns>内核编译签名信息</returns>
         public static string ReadKernelVersion(string filePath)
         {
-            if (!File.Exists(filePath)) return "";
-            try
+            byte[] Signature = [0x69, 0x6e, 0x69, 0x74, 0x63, 0x61, 0x6c, 0x6c, 0x5f, 0x64, 0x65, 0x62, 0x75, 0x67, 0x00];
+            using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            using BinaryReader br = new BinaryReader(fs);
+            long signaturePosition = FindSignaturePosition(br, Signature);
+            if (signaturePosition == -1)
             {
-
-                byte[] initcallSignature = [0x69, 0x6e, 0x69, 0x74, 0x63, 0x61, 0x6c, 0x6c, 0x5f, 0x64, 0x65, 0x62, 0x75, 0x67, 0x00];
-                byte[] linuxVersionSignature = Encoding.ASCII.GetBytes("Linux version ");
-
-                using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-                byte[] data = new byte[fs.Length];
-                fs.ReadExactly(data);
-
-                // initcall_debug
-                int index = IndexOf(data, initcallSignature);
-                if (index != -1)
-                {
-                    return ReadNullTerminatedString(data, index + initcallSignature.Length);
-                }
-
-                // Linux version
-                index = IndexOf(data, linuxVersionSignature);
-                if (index != -1)
-                {
-                    return ReadNullTerminatedString(data, index);
-                }
+                return "";
             }
-            catch { }
-            return "";
+            _ = fs.Seek(signaturePosition + Signature.Length, SeekOrigin.Begin);
+            return ReadUntilTerminator(br);
         }
-
-        private static int IndexOf(byte[] data, byte[] pattern)
+        private static long FindSignaturePosition(BinaryReader reader, byte[] signature)
         {
-            if (pattern.Length > data.Length) return -1;
-            for (int i = 0; i <= data.Length - pattern.Length; i++)
+            byte[] buffer = new byte[signature.Length];
+            long position = 0;
+            while (position + signature.Length <= reader.BaseStream.Length)
             {
-                bool found = true;
-                for (int j = 0; j < pattern.Length; j++)
+                _ = reader.BaseStream.Seek(position, SeekOrigin.Begin);
+                _ = reader.Read(buffer, 0, signature.Length);
+                if (buffer.SequenceEqual(signature))
                 {
-                    if (data[i + j] != pattern[j])
-                    {
-                        found = false;
-                        break;
-                    }
+                    return position;
                 }
-                if (found) return i;
+                position++;
             }
             return -1;
         }
-
-        private static string ReadNullTerminatedString(byte[] data, int startIndex)
+        private static string ReadUntilTerminator(BinaryReader reader)
         {
             StringBuilder sb = new StringBuilder();
-            for (int i = startIndex; i < data.Length; i++)
+            int b;
+            while ((b = reader.ReadByte()) != 0x00)
             {
-                if (data[i] == 0)
-                {
-                    if (sb.Length == 0) continue;
-                    break;
-                }
-                sb.Append((char)data[i]);
+                _ = sb.Append((char)b);
+            }
+            while ((b = reader.ReadByte()) != 0x00)
+            {
+                _ = sb.Append((char)b);
             }
             return sb.ToString();
         }

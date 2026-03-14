@@ -32,17 +32,14 @@ namespace UotanToolbox.Common.PatchHelper
                 Patchinfo.Mode = PatchMode.LKM;
                 Patchinfo.IsUseful = true;
             }
-            if (file_magic.Contains("archive") || file_magic.Contains("APK") || path.EndsWith(".apk", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            if (file_magic.Contains("archive") || file_magic.Contains("APK"))
             {
-                try
+                using IArchive archive = ArchiveFactory.Open(path);
+                foreach (IArchiveEntry entry in archive.Entries)
                 {
-                    using IArchive archive = ArchiveFactory.Open(path);
-                    foreach (IArchiveEntry entry in archive.Entries)
+                    if (!entry.IsDirectory)
                     {
-                        if (!entry.IsDirectory)
-                        {
-                            entry.WriteToDirectory(Patchinfo.TempPath, new ExtractionOptions() { ExtractFullPath = true, Overwrite = true });
-                        }
+                        entry.WriteToDirectory(Patchinfo.TempPath, new ExtractionOptions() { ExtractFullPath = true, Overwrite = true });
                     }
                 }
                 catch (Exception ex)
@@ -63,8 +60,11 @@ namespace UotanToolbox.Common.PatchHelper
                     isGki = imageFiles.Length > 0;
                 }
                 string[] ksuFiles = Directory.GetFiles(Patchinfo.TempPath, "libksud.so", SearchOption.AllDirectories);
+                if (ksuFiles.Length == 0)
+                {
+                    ksuFiles = Directory.GetFiles(Patchinfo.TempPath, "libksud.so", SearchOption.AllDirectories);
+                }
                 bool isksu_apk = ksuFiles.Length > 0;
-
                 if (isMagisk)
                 {
                     Patchinfo.Mode = PatchMode.Magisk;
