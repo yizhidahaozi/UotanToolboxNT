@@ -138,14 +138,14 @@
 								</StackPanel>
 								<StackPanel Orientation="Horizontal" Margin="0 15 0 0">
 									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="5">
-										<CheckBox Name="AddRoot" IsChecked="False" IsCheckedChanged="CheckRoot"/>
+										<CheckBox Name="AddRoot" IsChecked="False" Checked="CheckRoot"/>
 										<TextBlock VerticalAlignment="Center"
 												   FontSize="14"
 												   Width="90"
 												   Text="{x:Static assets:Resources.Wiredflash_AddMagisk}" />
 									</StackPanel>
 									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="5">
-										<CheckBox Name="DisVbmeta" IsChecked="False" />
+										<CheckBox Name="DisVbmeta" IsChecked="False" Checked="SetCommand"/>
 										<TextBlock VerticalAlignment="Center"
 												   FontSize="14"
 												   Width="90"
@@ -200,7 +200,7 @@
 								<TextBlock HorizontalAlignment="Center"
 										   Margin="0 45 0 0"
 										   FontWeight="DemiBold"
-										   Text="↓↓↓日志在下方喵~↓↓↓" />
+										   Text="{x:Static assets:Resources.Advancedflash_Meow}" />
 							</StackPanel>
 						</suki:GlassCard>
 					</StackPanel>

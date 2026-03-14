@@ -222,6 +222,13 @@ public partial class WiredflashView : UserControl
                             .TryShow();
     }
 
+    private async void SetCommand(object sender, RoutedEventArgs args)
+    {
+        Global.MainDialogManager.CreateDialog()
+                            .WithViewModel(_ => new SetVbmetaDialogViewModel())
+                            .TryShow();
+    }
+
     public void TXTFlashBusy(bool is_busy)
     {
         if (is_busy)
@@ -303,7 +310,7 @@ public partial class WiredflashView : UserControl
                                 }
                                 if (partandpath[0].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                 {
-                                    await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {partandpath[0]} \"{filepath}\"");
+                                    await Fastboot($"-s {Global.thisdevice} {Global.VbmetaCommand} flash {partandpath[0]} \"{filepath}\"");
                                 }
                                 else
                                 {
@@ -334,7 +341,7 @@ public partial class WiredflashView : UserControl
                                 }
                                 else if (fbflashparts[i].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                 {
-                                    await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {fbflashparts[i]} \"{imgpath}/{fbflashparts[i]}.img\"");
+                                    await Fastboot($"-s {Global.thisdevice} {Global.VbmetaCommand} flash {fbflashparts[i]} \"{imgpath}/{fbflashparts[i]}.img\"");
                                 }
                                 else
                                 {
@@ -522,7 +529,7 @@ public partial class WiredflashView : UserControl
                                         {
                                             if (partandpath[0].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                             {
-                                                await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {partandpath[0]} \"{fbdtxt[..fbdtxt.LastIndexOf('/')]}{partandpath[1]}\"");
+                                                await Fastboot($"-s {Global.thisdevice} {Global.VbmetaCommand} flash {partandpath[0]} \"{fbdtxt[..fbdtxt.LastIndexOf('/')]}{partandpath[1]}\"");
                                             }
                                             else
                                             {
@@ -537,7 +544,7 @@ public partial class WiredflashView : UserControl
                                     {
                                         if (fbdflashparts[i].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                         {
-                                            await Fastboot($"-s {Global.thisdevice} --disable-verity --disable-verification flash {fbdflashparts[i]} \"{imgpath}/{fbdflashparts[i]}.img\"");
+                                            await Fastboot($"-s {Global.thisdevice} {Global.VbmetaCommand} flash {fbdflashparts[i]} \"{imgpath}/{fbdflashparts[i]}.img\"");
                                         }
                                         else
                                         {

@@ -277,6 +277,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 ↓↓↓The log is below, meow~↓↓↓ 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Meow {
+            get {
+                return ResourceManager.GetString("Advancedflash_Meow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Advanced flash 的本地化字符串。
         /// </summary>
         public static string Advancedflash_Name {
@@ -1916,7 +1925,11 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
-        ///   查找类似 Devices manufactured for Android 13 and later require the use of multiple images from the original package for disabling verification. Please click &quot;Select vbmeta&quot; to select the original package image (which can include multiple images)! Click &quot;Continue&quot; to handle devices below Android 13. 的本地化字符串。
+        ///   查找类似 Devices manufactured for Android 13 and later require the use of multiple images from the original package for disabling verification. Please click &quot;Select vbmeta&quot; to select the original package image (which can include multiple images)! Click &quot;Continue&quot; to handle devices below Android 13.
+        ///--disable-verity --disable-verification (03): Most devices
+        ///--disable-verity (01): New Xiaomi devices(8E and later)
+        ///--disable-verification (02)
+        ///If you don&apos;t understand the above, please ignore it. The selection command o [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         public static string Customizedflash_ChoiceVbmeta {
             get {
@@ -1939,6 +1952,15 @@ namespace UotanToolbox.Assets {
         public static string Customizedflash_DisableVbmeta {
             get {
                 return ResourceManager.GetString("Customizedflash_DisableVbmeta", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Command: 的本地化字符串。
+        /// </summary>
+        public static string Customizedflash_DisCom {
+            get {
+                return ResourceManager.GetString("Customizedflash_DisCom", resourceCulture);
             }
         }
         

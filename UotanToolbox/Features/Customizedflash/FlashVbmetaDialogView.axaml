@@ -1,0 +1,42 @@
+﻿<UserControl x:Class="UotanToolbox.Features.Customizedflash.FlashVbmetaDialogView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:customizedflash="clr-namespace:UotanToolbox.Features.Customizedflash"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:assets="clr-namespace:UotanToolbox.Assets;assembly=UotanToolbox"
+             d:DesignHeight="450"
+             d:DesignWidth="500"
+             x:DataType="customizedflash:FlashVbmetaDialogViewModel"
+             mc:Ignorable="d">
+
+        <StackPanel Classes="HeaderContent">
+            <StackPanel  Margin="15 50 15 0" Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock TextWrapping="Wrap" FontSize="25" FontWeight="Bold" Text="{x:Static assets:Resources.Common_Warn}"/>
+            </StackPanel>
+            <StackPanel  Margin="15 0 15 0" Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Width="450" TextWrapping="Wrap" Text="{x:Static assets:Resources.Customizedflash_ChoiceVbmeta}"/>
+            </StackPanel>
+            <StackPanel Margin="15 0 15 0" Orientation="Horizontal">
+                <TextBlock Width="90" VerticalAlignment="Center" Text="{x:Static assets:Resources.Customizedflash_DisCom}"/>
+                <ComboBox Name="CommandList" SelectedIndex="0" Width="310" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="5">
+				<Button 
+                    Classes="Flat"
+                    Content="{x:Static assets:Resources.Customizedflash_SelectVbmeta}"
+                    Click="SelectVbmeta"
+                    />
+                <Button 
+                    Classes="Flat"
+                    Content="{x:Static assets:Resources.ConnectionDialog_Continue}"
+                    Click="Continue"
+                    />
+                <Button 
+                    Classes="Flat"
+                    Content="{x:Static assets:Resources.ConnectionDialog_Cancel}" 
+                    Click="Cancel"/>
+            </StackPanel>
+        </StackPanel>
+</UserControl>

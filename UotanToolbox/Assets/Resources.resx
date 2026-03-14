@@ -1676,7 +1676,11 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
     <value>Backup error! Device disconnected or encountered other issues, please check the logs</value>
   </data>
   <data name="Customizedflash_ChoiceVbmeta" xml:space="preserve">
-    <value>Devices manufactured for Android 13 and later require the use of multiple images from the original package for disabling verification. Please click "Select vbmeta" to select the original package image (which can include multiple images)! Click "Continue" to handle devices below Android 13.</value>
+    <value>Devices manufactured for Android 13 and later require the use of multiple images from the original package for disabling verification. Please click "Select vbmeta" to select the original package image (which can include multiple images)! Click "Continue" to handle devices below Android 13.
+--disable-verity --disable-verification (03): Most devices
+--disable-verity (01): New Xiaomi devices(8E and later)
+--disable-verification (02)
+If you don't understand the above, please ignore it. The selection command only applies to the selected vbmeta image.</value>
   </data>
   <data name="ConnectionDialog_Continue" xml:space="preserve">
     <value>Continue</value>
@@ -1818,5 +1822,11 @@ If you wish to replace Magisk, please first select your Magisk on the Basic Flas
   </data>
   <data name="Settings_UseNativeTip" xml:space="preserve">
     <value>Please note that the native dependencies are currently unstable and unexpected issues may occur!</value>
+  </data>
+  <data name="Customizedflash_DisCom" xml:space="preserve">
+    <value>Command:</value>
+  </data>
+  <data name="Advancedflash_Meow" xml:space="preserve">
+    <value>↓↓↓The log is below, meow~↓↓↓</value>
   </data>
 </root>

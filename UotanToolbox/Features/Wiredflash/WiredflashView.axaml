@@ -69,7 +69,7 @@
 												   Text="{x:Static assets:Resources.Wiredflash_AddMagisk}" />
 									</StackPanel>
 									<StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="10">
-										<CheckBox Name="DisVbmeta" IsChecked="True" />
+										<CheckBox Name="DisVbmeta" IsChecked="True" Checked="SetCommand"/>
 										<TextBlock VerticalAlignment="Center"
 												   FontSize="13"
 												   Width="90"

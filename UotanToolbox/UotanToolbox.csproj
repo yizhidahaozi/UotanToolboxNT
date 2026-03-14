@@ -93,6 +93,9 @@
 		<Compile Update="Features\Basicflash\BasicflashView.axaml.cs">
 		  <DependentUpon>BasicflashView.axaml</DependentUpon>
 		</Compile>
+		<Compile Update="Features\Customizedflash\FlashVbmetaDialogView.axaml.cs">
+		  <DependentUpon>FlashVbmetaDialogView.axaml</DependentUpon>
+		</Compile>
 		<Compile Update="Features\FormatExtract\FormatExtractView.axaml.cs">
 		  <DependentUpon>FormatExtractView.axaml</DependentUpon>
 		</Compile>

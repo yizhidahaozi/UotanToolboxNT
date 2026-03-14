@@ -1676,7 +1676,11 @@ ADB下填写序号，一次一个！</value>
     <value>备份出错！设备断开链接或出现其他问题，请查看日志</value>
   </data>
   <data name="Customizedflash_ChoiceVbmeta" xml:space="preserve">
-    <value>出厂为 Android13 及以后的设备需要使用原包的多个镜像进行禁用验证，请点击“选择vbmeta”以选择原包镜像（可包含多个）！点击“继续”则按 Android13 以下设备处理。</value>
+    <value>出厂为 Android13 及以后的设备需要使用原包的多个镜像进行禁用验证，请点击“选择vbmeta”以选择原包镜像（可包含多个）！点击“继续”则按 Android13 以下设备处理。
+--disable-verity --disable-verification (03)：绝大多数设备
+--disable-verity (01)：小米新设备(8E及以后)
+--disable-verification (02)
+以上内容看不懂请忽略，选择命令仅针对自选vbmate镜像生效。</value>
   </data>
   <data name="ConnectionDialog_Continue" xml:space="preserve">
     <value>继续</value>
@@ -1818,5 +1822,11 @@ ADB下填写序号，一次一个！</value>
   </data>
   <data name="Settings_UseNativeTip" xml:space="preserve">
     <value>请注意原生依赖当前存在不稳定情况可能出现意外情况！</value>
+  </data>
+  <data name="Customizedflash_DisCom" xml:space="preserve">
+    <value>选择禁用命令:</value>
+  </data>
+  <data name="Advancedflash_Meow" xml:space="preserve">
+    <value>↓↓↓日志在下方喵~↓↓↓</value>
   </data>
 </root>

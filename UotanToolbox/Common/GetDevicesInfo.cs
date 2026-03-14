@@ -3,7 +3,6 @@ using Avalonia.Controls.Notifications;
 using SukiUI.Dialogs;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 

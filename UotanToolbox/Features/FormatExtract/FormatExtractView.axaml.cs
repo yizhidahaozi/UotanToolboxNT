@@ -1510,4 +1510,5 @@ public partial class FormatExtractView : UserControl
         {
             FileHelper.OpenFolder(Path.Combine(Global.backup_path ?? string.Empty));
         }
-    }}
+    }
+}

@@ -5,8 +5,6 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
-using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UotanToolbox.Common;
@@ -621,12 +619,6 @@ public partial class CustomizedflashView : UserControl
         }
     }
 
-    private static FilePickerFileType VbmetaPicker { get; } = new("Vbmeta File")
-    {
-        Patterns = new[] { "*vbmeta*.img", "*VBMETA*.img" },
-        AppleUniformTypeIdentifiers = new[] { "*vbmeta*.img", "*VBMETA*.img" }
-    };
-
     private async void DisableVbmeta(object sender, RoutedEventArgs args)
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
@@ -636,73 +628,8 @@ public partial class CustomizedflashView : UserControl
             {
                 Global.MainDialogManager.CreateDialog()
                                         .WithTitle(GetTranslation("Common_Warn"))
-                                        .WithContent(GetTranslation("Customizedflash_ChoiceVbmeta"))
+                                        .WithViewModel(_ => new FlashVbmetaDialogView(this))
                                         .OfType(NotificationType.Warning)
-                                        .WithActionButton(GetTranslation("Customizedflash_SelectVbmeta"), async _ =>
-                                        {
-                                            string deviceId = Global.thisdevice;
-                                            if (string.IsNullOrWhiteSpace(deviceId))
-                                            {
-                                                Global.MainDialogManager.CreateDialog()
-                                                                    .WithTitle(GetTranslation("Common_Error"))
-                                                                    .OfType(NotificationType.Error)
-                                                                    .WithContent(GetTranslation("Common_NotConnected"))
-                                                                    .Dismiss().ByClickingBackground()
-                                                                    .TryShow();
-                                                return;
-                                            }
-
-                                            TopLevel topLevel = TopLevel.GetTopLevel(this);
-                                            System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-                                            {
-                                                Title = "Open File",
-                                                AllowMultiple = true,
-                                                FileTypeFilter = new[] { VbmetaPicker, FilePickerFileTypes.TextPlain }
-                                            });
-                                            if (files.Count >= 1)
-                                            {
-                                                Global.checkdevice = false;
-                                                try
-                                                {
-                                                    for (int i = 0; i < files.Count; i++)
-                                                    {
-                                                        await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash {Path.GetFileNameWithoutExtension(files[i].Name)} \"{files[i].TryGetLocalPath()}\"");
-                                                    }
-                                                }
-                                                finally
-                                                {
-                                                    Global.checkdevice = true;
-                                                }
-                                            }
-                                        }, true)
-                                        .WithActionButton(GetTranslation("ConnectionDialog_Continue"), async _ =>
-                                        {
-                                            string deviceId = Global.thisdevice;
-                                            if (string.IsNullOrWhiteSpace(deviceId))
-                                            {
-                                                Global.MainDialogManager.CreateDialog()
-                                                                    .WithTitle(GetTranslation("Common_Error"))
-                                                                    .OfType(NotificationType.Error)
-                                                                    .WithContent(GetTranslation("Common_NotConnected"))
-                                                                    .Dismiss().ByClickingBackground()
-                                                                    .TryShow();
-                                                return;
-                                            }
-
-                                            CustomizedflashLog.Text = "";
-                                            Global.checkdevice = false;
-                                            try
-                                            {
-                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
-                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta_system \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
-                                                await Fastboot($"-s {deviceId} --disable-verity --disable-verification flash vbmeta_vendor \"{Path.Combine(Global.runpath, "Image", "vbmeta.img")}\"");
-                                            }
-                                            finally
-                                            {
-                                                Global.checkdevice = true;
-                                            }
-                                        }, true)
-                                        .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
                                         .TryShow();
             }
             else
