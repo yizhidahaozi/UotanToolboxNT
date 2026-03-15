@@ -126,11 +126,15 @@ public partial class SettingsViewModel : MainPageBase
         UotanToolbox.Settings.Default.Save();
         if (value)
         {
-            Global.MainDialogManager.CreateDialog()
+            try
+            {
+                Global.MainDialogManager.CreateDialog()
                     .WithTitle(GetTranslation("Common_Warn"))
                     .OfType(NotificationType.Error)
                     .WithContent(GetTranslation("Settings_UseNativeTip"))
                     .Dismiss().ByClickingBackground().TryShow();
+            }
+            catch { }
         }
     }
 
