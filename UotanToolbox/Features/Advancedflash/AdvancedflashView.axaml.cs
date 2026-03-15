@@ -1195,6 +1195,26 @@ public partial class AdvancedflashView : UserControl
             {
                 _parsedFileType = ParsedFileType.Script;
                 AdvancedflashLog.Text += $"\nSkip script type: {Path.GetFileName(path)}";
+                if (DelCow.IsChecked == true)
+                {
+                    string cow = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                    string[] cowparts = FeaturesHelper.GetVPartList(cow);
+                    for (int i = 0; i < cowparts.Length; i++)
+                    {
+                        if (cowparts[i].Contains("-cow"))
+                        {
+                            await Fastboot($"-s {Global.thisdevice} delete-logical-partition {cowparts[i]}");
+                        }
+                        FileHelper.Write(fastboot_log_path, output);
+                        if (output.Contains("FAILED") || output.Contains("error"))
+                        {
+                            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
+                            SetEnabled(false);
+                            Global.checkdevice = true;
+                            return;
+                        }
+                    }
+                }
                 //检测后的脚本逻辑写这里
                 foreach (var item in vm.FalshPartModel)
                 {
@@ -1290,6 +1310,11 @@ public partial class AdvancedflashView : UserControl
                         }
                     }
                 }
+                if (ErasData.IsChecked == true)
+                {
+                    await Fastboot($"-s {Global.thisdevice} erase metadata");
+                    await Fastboot($"-s {Global.thisdevice} erase userdata");
+                }
                 Global.MainDialogManager.CreateDialog()
                                 .WithTitle(GetTranslation("Common_Succ"))
                                 .WithContent(GetTranslation("Wiredflash_ROMFlash"))
@@ -1366,6 +1391,26 @@ public partial class AdvancedflashView : UserControl
                 Global.checkdevice = false;
                 AdvancedflashLog.Text = "";
                 output = "";
+                if (DelCow.IsChecked == true)
+                {
+                    string cow = await CallExternalProgram.Fastboot($"-s {Global.thisdevice} getvar all");
+                    string[] cowparts = FeaturesHelper.GetVPartList(cow);
+                    for (int i = 0; i < cowparts.Length; i++)
+                    {
+                        if (cowparts[i].Contains("-cow"))
+                        {
+                            await Fastboot($"-s {Global.thisdevice} delete-logical-partition {cowparts[i]}");
+                        }
+                        FileHelper.Write(fastboot_log_path, output);
+                        if (output.Contains("FAILED") || output.Contains("error"))
+                        {
+                            Global.MainDialogManager.CreateDialog().WithTitle(GetTranslation("Common_Error")).OfType(NotificationType.Error).WithContent(GetTranslation("Wiredflash_FlashError")).Dismiss().ByClickingBackground().TryShow();
+                            SetEnabled(false);
+                            Global.checkdevice = true;
+                            return;
+                        }
+                    }
+                }
                 foreach (var item in vm.FalshPartModel)
                 {
                     if (item.Select == true)
@@ -1408,6 +1453,11 @@ public partial class AdvancedflashView : UserControl
                             return;
                         }
                     }
+                }
+                if (ErasData.IsChecked == true)
+                {
+                    await Fastboot($"-s {Global.thisdevice} erase metadata");
+                    await Fastboot($"-s {Global.thisdevice} erase userdata");
                 }
                 Global.checkdevice = true;
                 Global.MainDialogManager.CreateDialog()

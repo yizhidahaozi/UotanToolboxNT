@@ -1793,4 +1793,10 @@ If you don't understand the above, please ignore it. The selection command only 
   <data name="Advancedflash_Meow" xml:space="preserve">
     <value>↓↓↓The log is below, meow~↓↓↓</value>
   </data>
+  <data name="Advancedflash_DeleteCow" xml:space="preserve">
+    <value>Deletc COW</value>
+  </data>
+  <data name="Advancedflash_Waiting" xml:space="preserve">
+    <value>During the process, unpacking may take a long time, please be patient.</value>
+  </data>
 </root>

@@ -1793,4 +1793,10 @@ ADB下填写序号，一次一个！</value>
   <data name="Advancedflash_Meow" xml:space="preserve">
     <value>↓↓↓日志在下方喵~↓↓↓</value>
   </data>
+  <data name="Advancedflash_DeleteCow" xml:space="preserve">
+    <value>删除COW分区</value>
+  </data>
+  <data name="Advancedflash_Waiting" xml:space="preserve">
+    <value>执行中，解包可能时间较长请耐心等待</value>
+  </data>
 </root>

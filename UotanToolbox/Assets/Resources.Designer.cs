@@ -187,6 +187,15 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
+        ///   查找类似 Deletc COW 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_DeleteCow {
+            get {
+                return ResourceManager.GetString("Advancedflash_DeleteCow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Erase selected 的本地化字符串。
         /// </summary>
         public static string Advancedflash_EraseSelected {
@@ -426,6 +435,15 @@ namespace UotanToolbox.Assets {
         public static string Advancedflash_UrlNotPayload {
             get {
                 return ResourceManager.GetString("Advancedflash_UrlNotPayload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 During the process, unpacking may take a long time, please be patient. 的本地化字符串。
+        /// </summary>
+        public static string Advancedflash_Waiting {
+            get {
+                return ResourceManager.GetString("Advancedflash_Waiting", resourceCulture);
             }
         }
         
