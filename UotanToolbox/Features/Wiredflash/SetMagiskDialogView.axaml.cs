@@ -18,8 +18,8 @@ public partial class SetMagiskDialogView : UserControl
 
     public static FilePickerFileType Zip { get; } = new("Zip")
     {
-        Patterns = new[] { "*.zip", "*.apk", "*.ko" },
-        AppleUniformTypeIdentifiers = new[] { "*.zip", "*.apk", "*.ko" }
+        Patterns = new[] { "*.zip", "*.apk" },
+        AppleUniformTypeIdentifiers = new[] { "*.zip", "*.apk" }
     };
 
     private async void OpenMagiskFile(object sender, RoutedEventArgs args)

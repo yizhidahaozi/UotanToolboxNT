@@ -1302,7 +1302,7 @@ ADB下填写序号，一次一个！</value>
     <value>KernelSU安装包错误</value>
   </data>
   <data name="Basicflash_MagiskOrKSU" xml:space="preserve">
-    <value>↓可选择Magisk或KernelSU的AnyKernel或ko文件↓</value>
+    <value>↓可选择Magisk或KernelSU的AnyKernel文件↓</value>
   </data>
   <data name="Basicflash_MagsikError" xml:space="preserve">
     <value>Magisk安装包错误</value>

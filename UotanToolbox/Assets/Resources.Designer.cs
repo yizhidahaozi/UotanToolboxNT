@@ -1123,7 +1123,7 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
-        ///   查找类似 ↓ Choose between Magisk or KernelSU AnyKernel or ko file ↓ 的本地化字符串。
+        ///   查找类似 ↓ Choose between Magisk or KernelSU AnyKernel file ↓ 的本地化字符串。
         /// </summary>
         public static string Basicflash_MagiskOrKSU {
             get {
@@ -1835,15 +1835,6 @@ namespace UotanToolbox.Assets {
         }
         
         /// <summary>
-        ///   查找类似 This function only supports Windows, macOS and Linux. 的本地化字符串。
-        /// </summary>
-        public static string Common_PlatformNotSupported {
-            get {
-                return ResourceManager.GetString("Common_PlatformNotSupported", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Success 的本地化字符串。
         /// </summary>
         public static string Common_Succ {
@@ -1929,7 +1920,7 @@ namespace UotanToolbox.Assets {
         ///--disable-verity --disable-verification (03): Most devices
         ///--disable-verity (01): New Xiaomi devices(8E and later)
         ///--disable-verification (02)
-        ///If you don&apos;t understand the above, please ignore it. The selection command o [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        ///If you don&apos;t understand the above, please ignore it. The selection command [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         public static string Customizedflash_ChoiceVbmeta {
             get {
@@ -4107,105 +4098,6 @@ namespace UotanToolbox.Assets {
         public static string Others_WLAN {
             get {
                 return ResourceManager.GetString("Others_WLAN", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Boot clean failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_BootCleanFailed {
-            get {
-                return ResourceManager.GetString("Patch_BootCleanFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 kernelsu.ko not found in patch source. 的本地化字符串。
-        /// </summary>
-        public static string Patch_KernelSUNotFound {
-            get {
-                return ResourceManager.GetString("Patch_KernelSUNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 KernelSU pack failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_KernelSUPackFailed {
-            get {
-                return ResourceManager.GetString("Patch_KernelSUPackFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 KernelSU patch failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_KernelSUPatchFailed {
-            get {
-                return ResourceManager.GetString("Patch_KernelSUPatchFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Cannot find a matching kernelsu.ko for kernel version {0} in this APK. 的本地化字符串。
-        /// </summary>
-        public static string Patch_KSUKoNotFound {
-            get {
-                return ResourceManager.GetString("Patch_KSUKoNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Could not find libksud.so for architecture {0} in APK. 的本地化字符串。
-        /// </summary>
-        public static string Patch_KSUKsudNotFound {
-            get {
-                return ResourceManager.GetString("Patch_KSUKsudNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 KernelSU only supports ARM64 architecture. 的本地化字符串。
-        /// </summary>
-        public static string Patch_KSUOnlyArm64 {
-            get {
-                return ResourceManager.GetString("Patch_KSUOnlyArm64", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Magisk component copy failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_MagiskCopyFailed {
-            get {
-                return ResourceManager.GetString("Patch_MagiskCopyFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Magisk DTB patch failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_MagiskDTBPatchFailed {
-            get {
-                return ResourceManager.GetString("Patch_MagiskDTBPatchFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Magisk patch failed. 的本地化字符串。
-        /// </summary>
-        public static string Patch_MagiskPatchFailed {
-            get {
-                return ResourceManager.GetString("Patch_MagiskPatchFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Magisk ramdisk patch failed:  的本地化字符串。
-        /// </summary>
-        public static string Patch_MagiskRamdiskPatchFailed {
-            get {
-                return ResourceManager.GetString("Patch_MagiskRamdiskPatchFailed", resourceCulture);
             }
         }
         

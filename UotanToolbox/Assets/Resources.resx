@@ -1302,7 +1302,7 @@ Fill ID in ADB, one at a time!</value>
     <value>wrong KernelSU package</value>
   </data>
   <data name="Basicflash_MagiskOrKSU" xml:space="preserve">
-    <value>↓ Choose between Magisk or KernelSU AnyKernel or ko file ↓</value>
+    <value>↓ Choose between Magisk or KernelSU AnyKernel file ↓</value>
   </data>
   <data name="Basicflash_MagsikError" xml:space="preserve">
     <value>wrong magisk package</value>
