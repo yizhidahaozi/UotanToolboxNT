@@ -66,75 +66,6 @@ namespace UotanToolbox.Common
             return Global.DeviceManager.Devices.Select(d => d.Id).ToArray();
         }
 
-        private static async Task CheckLinuxPermissionsAsync()
-        {
-            if (!Global.System.Contains("Linux") || !Global.root)
-            {
-                return;
-            }
-
-            string adbOutput = await CallExternalProgram.ADB("devices");
-            if (adbOutput.Contains("failed to check server version: cannot connect to daemon"))
-            {
-                Global.MainDialogManager.CreateDialog()
-                    .WithTitle(GetTranslation("Common_Warn"))
-                    .WithContent(GetTranslation("Common_ADBRoot"))
-                    .OfType(NotificationType.Warning)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
-                    {
-                        await CallExternalProgram.Sudo("chmod -R 777 /dev/bus/usb/");
-                        if (Global.DeviceManager != null)
-                        {
-                            await Global.DeviceManager.ScanAsync();
-                        }
-                    }, true)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
-                    .TryShow();
-                Global.root = false;
-            }
-
-            string fbOutput = await CallExternalProgram.Fastboot("devices");
-            if (fbOutput.Contains("no permissions"))
-            {
-                Global.MainDialogManager.CreateDialog()
-                    .WithTitle(GetTranslation("Common_Warn"))
-                    .WithContent(GetTranslation("Common_FBRoot"))
-                    .OfType(NotificationType.Warning)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
-                    {
-                        await CallExternalProgram.Sudo("chmod -R 777 /dev/bus/usb/");
-                        if (Global.DeviceManager != null)
-                        {
-                            await Global.DeviceManager.ScanAsync();
-                        }
-                    }, true)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
-                    .TryShow();
-                Global.root = false;
-            }
-
-            string devcon = await CallExternalProgram.LsUSB();
-            string[] hdcDevices = StringHelper.HDCDevices(await CallExternalProgram.HDC("list targets"));
-            if (devcon.Contains("HDC Device") && hdcDevices.Length == 0)
-            {
-                Global.MainDialogManager.CreateDialog()
-                    .WithTitle(GetTranslation("Common_Warn"))
-                    .WithContent(GetTranslation("Common_HDCRoot"))
-                    .OfType(NotificationType.Warning)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
-                    {
-                        await CallExternalProgram.Sudo("chmod -R 777 /dev/bus/usb/");
-                        if (Global.DeviceManager != null)
-                        {
-                            await Global.DeviceManager.ScanAsync();
-                        }
-                    }, true)
-                    .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
-                    .TryShow();
-                Global.root = false;
-            }
-        }
-
         public static async Task<bool> SetDevicesInfoLittle()
         {
             if (Global.DeviceManager == null)
@@ -145,9 +76,6 @@ namespace UotanToolbox.Common
 
             // 确保扫描过一次
             await Global.DeviceManager.ScanAsync();
-
-            // Linux 下检测 USB 权限问题并弹窗提示
-            await CheckLinuxPermissionsAsync();
 
             var list = Global.DeviceManager.Devices.Select(d => d.Id).ToArray();
             if (list.Length != 0)

@@ -2,11 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using SukiUI.Dialogs;
+using Avalonia.Controls.Notifications;
 
 namespace UotanToolbox.Common.Devices
 {
     public class AdbTransport : IDeviceTransport
     {
+        private static string GetTranslation(string key)
+        {
+            return FeaturesHelper.GetTranslation(key);
+        }
+        
         public TransportType Type => TransportType.Adb;
 
         public async Task<IEnumerable<DeviceInfo>> ProbeAsync(CancellationToken cancel = default)
@@ -14,6 +21,27 @@ namespace UotanToolbox.Common.Devices
             string output = await CallExternalProgram.ADB("devices");
             var result = new List<DeviceInfo>();
             var lines = output.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
+
+            if (Global.System.Contains("Linux") && Global.root)
+            {
+                if (output.Contains("failed to check server version: cannot connect to daemon"))
+                {
+                    Global.MainDialogManager.CreateDialog()
+                        .WithTitle(GetTranslation("Common_Warn"))
+                        .WithContent(GetTranslation("Common_ADBRoot"))
+                        .OfType(NotificationType.Warning)
+                        .WithActionButton(GetTranslation("ConnectionDialog_Confirm"), async _ =>
+                        {
+                            await CallExternalProgram.Sudo("chmod -R 777 /dev/bus/usb/");
+                            output = await CallExternalProgram.ADB("devices");
+                            var lines = output.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
+                        }, true)
+                        .WithActionButton(GetTranslation("ConnectionDialog_Cancel"), _ => { }, true)
+                        .TryShow();
+                    Global.root = false;
+                }
+                
+            }
 
             foreach (var line in lines)
             {
