@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using UotanToolbox.Common.PatchHelper.KernelSUPatcher;
 
 namespace UotanToolbox.Common.PatchHelper
 {
@@ -42,14 +43,32 @@ namespace UotanToolbox.Common.PatchHelper
             {
                 throw new Exception("unsupported arch" + bootInfo.Arch);
             }
-            File.Copy(Path.Combine(zipInfo.TempPath, "kernelsu.ko"), Path.Combine(bootInfo.TempPath, "kernelsu.ko"), true);
-            string archSubfolder = bootInfo.Arch switch
+            string[] ksuFiles = Directory.GetFiles(zipInfo.TempPath, "*libksud.so", SearchOption.AllDirectories);
+            if (ksuFiles.Length == 0)
             {
-                "aarch64" => "arm64-v8a",
-                "X86-64" => "x86_64",
-                _ => throw new ArgumentException($"{GetTranslation("Basicflash_UnknowArch")}{bootInfo.Arch}")
-            };
-            File.Copy(Path.Combine(Global.bin_path, "ksud", archSubfolder, "init"), Path.Combine(bootInfo.TempPath, "init"));
+                throw new Exception("Cannot find libksud.so");
+            }
+            var ksudinfo = Libksud.LoadFromFile(ksuFiles[0]);
+            string kmi = bootInfo.KMI;
+            if (!string.IsNullOrEmpty(Global.KSU_KMI))
+            {
+                kmi = Global.KSU_KMI;
+            }
+            var assets = ksudinfo.GetAssets();
+            var kmiAsset = assets.FirstOrDefault(a => a.Name == $"{kmi}_kernelsu.ko");
+            if (kmiAsset == null)
+            {
+                throw new Exception($"Cannot find kernelsu.ko for KMI: {kmi}");
+            }
+            kmiAsset.Export(Path.Combine(bootInfo.TempPath, "kernelsu.ko"));
+
+            var ksuinitAsset = assets.FirstOrDefault(a => a.Name == "ksuinit");
+            if (ksuinitAsset == null)
+            {
+                throw new Exception("Cannot find ksuinit in ksud assets");
+            }
+            ksuinitAsset.Export(Path.Combine(bootInfo.TempPath, "ksuinit"));
+
             (string mb_output, int exitcode) = await CallExternalProgram.MagiskBoot($"cpio ramdisk.cpio \"cp init init.real\" \"add 0755 ksuinit init\" \"add 0755 kernelsu.ko kernelsu.ko\"", bootInfo.TempPath);
             if (exitcode != 0)
             {
