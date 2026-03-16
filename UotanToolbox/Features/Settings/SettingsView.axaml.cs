@@ -16,6 +16,10 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        if (Global.System == "macOS")
+        {
+            UseNativeToggle.IsEnabled = false;
+        }
     }
 
     private static FilePickerFileType CsvPicker { get; } = new("CSV File")

@@ -122,6 +122,7 @@
 							</DockPanel>
 							<DockPanel>
 								<ToggleButton VerticalAlignment="Top"
+											  Name="UseNativeToggle"
 											  Classes="Switch"
 											  DockPanel.Dock="Right"
 											  IsChecked="{Binding UseNative}" />
