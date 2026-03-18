@@ -5,9 +5,18 @@
 	<h3>柚坛工具箱 NT</h3>
 	<h4><i>现代化 Android & OpenHarmony 工具箱</i></h4>
 	<div id="badges" >
-		<a href="https://www.uotan.cn/"><img src="https://img.shields.io/badge/Uotan Project-ff4e45?style=for-the-badge" alt="Uotan Project"/></a> 
-		<a href="https://github.com/Uotan-Dev/UotanToolboxNT/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Uotan-Dev/UotanToolboxNT?style=for-the-badge" alt="License"/></a>
-		<a href="https://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=9IrUA3Rd5Gf6_h9WilwiO8U784SIkXYR&authKey=%2FxSq3qNpRX0i%2BE4lcMijNr3KNFDfdc2sIkcCXxhb4sqsZWHkIcktnkzyQmRNeW8T&noverify=0&group_code=975952599"><img src="https://img.shields.io/badge/QQ%20Group-4379c4?style=for-the-badge" alt="License"/></a>
+		<a href="https://www.uotan.cn/">
+			<img src="https://img.shields.io/badge/Uotan Project-ff4e45?style=for-the-badge" alt="Uotan Project"/>
+		</a> 
+		<a href="https://github.com/Uotan-Dev/UotanToolboxNT/blob/main/LICENSE">
+			<img src="https://img.shields.io/github/license/Uotan-Dev/UotanToolboxNT?style=for-the-badge" alt="License"/>
+		</a>
+		<a href="https://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=9IrUA3Rd5Gf6_h9WilwiO8U784SIkXYR&authKey=%2FxSq3qNpRX0i%2BE4lcMijNr3KNFDfdc2sIkcCXxhb4sqsZWHkIcktnkzyQmRNeW8T&noverify=0&group_code=975952599">
+			<img src="https://img.shields.io/badge/QQ%20Group-4379c4?style=for-the-badge" alt="QQ Group"/>
+		</a>
+		<a href="https://github.com/Uotan-Dev/UotanToolboxNT/releases">
+			<img src="https://img.shields.io/github/downloads/Uotan-Dev/UotanToolboxNT/total.svg?style=for-the-badge" alt="Downloads"/>
+		</a>
 	</div>
 </div>
 <br/>
