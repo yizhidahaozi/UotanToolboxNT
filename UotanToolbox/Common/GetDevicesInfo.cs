@@ -1,4 +1,6 @@
 ﻿using Avalonia.Collections;
+using Avalonia.Controls.Notifications;
+using SukiUI.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -45,7 +45,6 @@ namespace UotanToolbox.Common
         public static string MagiskAPKPath { get; internal set; } = string.Empty;
 
         public static string VbmetaCommand { get; internal set; } = "--disable-verity --disable-verification";
-        public static string KSU_KMI { get; set; } = string.Empty;
 
         // 设备管理器实例
         public static UotanToolbox.Common.Devices.DeviceManager DeviceManager = null!;

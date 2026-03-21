@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using UotanToolbox.Common;
 using UotanToolbox.Common.Devices;
 using UotanToolbox.Common.PatchHelper;
-using UotanToolbox.Common.PatchHelper.KernelSUPatcher;
 
 namespace UotanToolbox.Features.Basicflash;
 
@@ -27,17 +26,13 @@ public partial class BasicflashView : UserControl
     public AvaloniaList<string> SimpleUnlock = ["oem unlock", "oem unlock-go", "flashing unlock", "flashing unlock_critical"];
     public AvaloniaList<string> Command = ["shell twrp sideload", "reboot sideload", "reboot autodloader", "shell su -c \"setprop ctl.restart zygote\"", "reboot safe-mode", "reboot muc", "reboot factory", "reboot admin"];
     public AvaloniaList<string> Arch = ["aarch64", "armeabi", "X86-64", "X86"];
-    public AvaloniaList<string> CurrentArchList = [];
     public AvaloniaList<string> Band = [GetTranslation("Band_Common"), GetTranslation("Band_Huawei"), GetTranslation("Band_Sony")];
 
     public BasicflashView()
     {
         InitializeComponent();
         SimpleContent.ItemsSource = SimpleUnlock;
-        CurrentArchList.Clear();
-        foreach (var a in Arch) CurrentArchList.Add(a);
-        ArchList.ItemsSource = CurrentArchList;
-        ArchList.SelectedIndex = 0;
+        ArchList.ItemsSource = Arch;
         RebootComm.ItemsSource = Command;
         UnlockBand.ItemsSource = Band;
         UnlockBand.SelectedIndex = 0;
@@ -627,59 +622,8 @@ public partial class BasicflashView : UserControl
                 patch_busy(false);
                 return;
             }
-            string filePath = files[0].TryGetLocalPath();
-            MagiskFile.Text = filePath;
-
-            // 选择新文件时立即清空旧列表，并在 UI 线程上重置一次绑定
-            CurrentArchList.Clear();
-            ArchList.ItemsSource = null;
-            ArchList.ItemsSource = CurrentArchList;
-
-            await Task.Run(async () =>
-            {
-                Global.Zipinfo = await PatchDetect.Patch_Detect(filePath);
-
-                if (Global.Zipinfo.Mode == PatchMode.LKM)
-                {
-                    string[] ksuFiles = Directory.GetFiles(Global.Zipinfo.TempPath, "*libksud.so", SearchOption.AllDirectories);
-                    if (ksuFiles.Length > 0)
-                    {
-                        var ksud = Libksud.LoadFromFile(ksuFiles[0]);
-                        var kmis = ksud.GetSupportedKMI();
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            if (kmis != null && kmis.Count > 0)
-                            {
-                                CurrentArchList.Clear();
-                                foreach (var k in kmis) CurrentArchList.Add(k);
-
-                                // 深度强制刷新
-                                ArchList.InvalidateVisual();
-                                if (!string.IsNullOrEmpty(Global.Bootinfo.KMI) && CurrentArchList.Contains(Global.Bootinfo.KMI))
-                                {
-                                    ArchList.SelectedItem = Global.Bootinfo.KMI;
-                                }
-                                else
-                                {
-                                    ArchList.SelectedIndex = 0;
-                                }
-                            }
-                        });
-                    }
-                }
-                else
-                {
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    {
-                        CurrentArchList.Clear();
-                        foreach (var a in Arch) CurrentArchList.Add(a);
-
-                        ArchList.InvalidateVisual();
-                        ArchList.SelectedItem = Global.Bootinfo.Arch;
-                    });
-                }
-            });
-
+            MagiskFile.Text = files[0].TryGetLocalPath();
+            Global.Zipinfo = await PatchDetect.Patch_Detect(MagiskFile.Text);
             Global.MainDialogManager.CreateDialog()
                                         .OfType(NotificationType.Information)
                                         .WithContent($"{GetTranslation("Basicflash_DetectZIP")}\nUseful:{Global.Zipinfo.IsUseful}\nMode:{Global.Zipinfo.Mode}")
@@ -721,59 +665,9 @@ public partial class BasicflashView : UserControl
                 patch_busy(false);
                 return;
             }
-            string filePath = files[0].TryGetLocalPath();
-            BootFile.Text = filePath;
-
-            // 选择新文件时立即清空旧列表，并在 UI 线程上重置一次绑定
-            CurrentArchList.Clear();
-            ArchList.ItemsSource = null;
-            ArchList.ItemsSource = CurrentArchList;
-
-            await Task.Run(async () =>
-            {
-                Global.Bootinfo = await ImageDetect.Boot_Detect(filePath);
-
-                if (Global.Zipinfo.Mode == PatchMode.LKM)
-                {
-                    string[] ksuFiles = Directory.GetFiles(Global.Zipinfo.TempPath, "*libksud.so", SearchOption.AllDirectories);
-                    if (ksuFiles.Length > 0)
-                    {
-                        var ksud = Libksud.LoadFromFile(ksuFiles[0]);
-                        var kmis = ksud.GetSupportedKMI();
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            if (kmis != null && kmis.Count > 0)
-                            {
-                                CurrentArchList.Clear();
-                                foreach (var k in kmis) CurrentArchList.Add(k);
-
-                                // 深度强制刷新
-                                ArchList.InvalidateVisual();
-                                if (!string.IsNullOrEmpty(Global.Bootinfo.KMI) && CurrentArchList.Contains(Global.Bootinfo.KMI))
-                                {
-                                    ArchList.SelectedItem = Global.Bootinfo.KMI;
-                                }
-                                else
-                                {
-                                    ArchList.SelectedIndex = 0;
-                                }
-                            }
-                        });
-                    }
-                }
-                else
-                {
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    {
-                        CurrentArchList.Clear();
-                        foreach (var a in Arch) CurrentArchList.Add(a);
-
-                        ArchList.InvalidateVisual();
-                        ArchList.SelectedItem = Global.Bootinfo.Arch;
-                    });
-                }
-            });
-
+            BootFile.Text = files[0].TryGetLocalPath();
+            Global.Bootinfo = await ImageDetect.Boot_Detect(BootFile.Text);
+            ArchList.SelectedItem = Global.Bootinfo.Arch;
             Global.MainDialogManager.CreateDialog()
                                         .OfType(NotificationType.Information)
                                         .WithContent($"{GetTranslation("Basicflash_DetectdBoot")}\nArch:{Global.Bootinfo.Arch}\nOS:{Global.Bootinfo.OSVersion}\nPatch_level:{Global.Bootinfo.PatchLevel}\nRamdisk:{Global.Bootinfo.HaveRamdisk}\nKMI:{Global.Bootinfo.KMI}\nKERNEL_FMT:{Global.Bootinfo.Compress}")
@@ -809,10 +703,6 @@ public partial class BasicflashView : UserControl
             else
             {
                 EnvironmentVariable.PREINITDEVICE = PREINITDEVICE.Text;
-            }
-            if (ArchList.SelectedItem != null)
-            {
-                Global.KSU_KMI = ArchList.SelectedItem.ToString();
             }
             if (Global.Bootinfo.IsUseful != true | string.IsNullOrEmpty(MagiskFile.Text))
             {
