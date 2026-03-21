@@ -184,7 +184,7 @@ public partial class CustomizedflashView : UserControl
                                         .TryShow();
         }
     }
-    private async void OpenVenderFile(object sender, RoutedEventArgs args)
+    private async void OpenVendorFile(object sender, RoutedEventArgs args)
     {
         TopLevel topLevel = TopLevel.GetTopLevel(this);
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -194,26 +194,26 @@ public partial class CustomizedflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            VenderFile.Text = files[0].TryGetLocalPath();
+            VendorFile.Text = files[0].TryGetLocalPath();
         }
     }
-    private async void FlashVenderFile(object sender, RoutedEventArgs args)
+    private async void FlashVendorFile(object sender, RoutedEventArgs args)
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            if (VenderFile.Text != null)
+            if (VendorFile.Text != null)
             {
                 MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
                 if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
                 {
                     Global.checkdevice = false;
-                    OpenVenderFileBut.IsEnabled = false;
-                    FlashVenderFileBut.IsEnabled = false;
+                    OpenVendorFileBut.IsEnabled = false;
+                    FlashVendorFileBut.IsEnabled = false;
                     CustomizedflashLog.Text = GetTranslation("Customizedflash_Flashing") + "\n";
-                    string shell = string.Format($"-s {Global.thisdevice} flash vendor \"{VenderFile.Text}\"");
+                    string shell = string.Format($"-s {Global.thisdevice} flash vendor \"{VendorFile.Text}\"");
                     await Fastboot(shell);
-                    OpenVenderFileBut.IsEnabled = true;
-                    FlashVenderFileBut.IsEnabled = true;
+                    OpenVendorFileBut.IsEnabled = true;
+                    FlashVendorFileBut.IsEnabled = true;
                     Global.checkdevice = true;
                 }
                 else
@@ -432,7 +432,7 @@ public partial class CustomizedflashView : UserControl
                                         .TryShow();
         }
     }
-    private async void OpenVenderbootFile(object sender, RoutedEventArgs args)
+    private async void OpenVendorbootFile(object sender, RoutedEventArgs args)
     {
         TopLevel topLevel = TopLevel.GetTopLevel(this);
         System.Collections.Generic.IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -442,26 +442,26 @@ public partial class CustomizedflashView : UserControl
         });
         if (files.Count >= 1)
         {
-            VenderbootFile.Text = files[0].TryGetLocalPath();
+            VendorbootFile.Text = files[0].TryGetLocalPath();
         }
     }
-    private async void FlashVenderbootFile(object sender, RoutedEventArgs args)
+    private async void FlashVendorbootFile(object sender, RoutedEventArgs args)
     {
         if (await GetDevicesInfo.SetDevicesInfoLittle())
         {
-            if (VenderbootFile.Text != null)
+            if (VendorbootFile.Text != null)
             {
                 MainViewModel sukiViewModel = GlobalData.MainViewModelInstance;
                 if (sukiViewModel.Status == GetTranslation("Home_Fastboot") || sukiViewModel.Status == GetTranslation("Home_Fastbootd"))
                 {
                     Global.checkdevice = false;
-                    OpenVenderbootFileBut.IsEnabled = false;
-                    FlashVenderbootFileBut.IsEnabled = false;
+                    OpenVendorbootFileBut.IsEnabled = false;
+                    FlashVendorbootFileBut.IsEnabled = false;
                     CustomizedflashLog.Text = GetTranslation("Customizedflash_Flashing") + "\n";
-                    string shell = string.Format($"-s {Global.thisdevice} flash vendor_boot \"{VenderbootFile.Text}\"");
+                    string shell = string.Format($"-s {Global.thisdevice} flash vendor_boot \"{VendorbootFile.Text}\"");
                     await Fastboot(shell);
-                    OpenVenderbootFileBut.IsEnabled = true;
-                    FlashVenderbootFileBut.IsEnabled = true;
+                    OpenVendorbootFileBut.IsEnabled = true;
+                    FlashVendorbootFileBut.IsEnabled = true;
                     Global.checkdevice = true;
                 }
                 else

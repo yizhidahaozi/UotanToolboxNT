@@ -73,18 +73,18 @@
 													   VerticalAlignment="Center"
 													   FontSize="13"
 													   Text="Vendor" />
-											<TextBox Width="270" Name="VenderFile"
+											<TextBox Width="270" Name="VendorFile"
 													 theme:TextBoxExtensions.AddDeleteButton="False"/>
-											<Button Name="OpenVenderFileBut"
+											<Button Name="OpenVendorFileBut"
 												    Height="35"
 													Padding="10,0,10,0"
-													Click="OpenVenderFile"
+													Click="OpenVendorFile"
 													Content="{x:Static assets:Resources.Customizedflash_File}"/>
-											<Button Name="FlashVenderFileBut"
+											<Button Name="FlashVendorFileBut"
 												    Height="35"
 													Margin="5,0,0,0"
 													Padding="10,0,10,0"
-													Click="FlashVenderFile"
+													Click="FlashVendorFile"
 													Content="{x:Static assets:Resources.Customizedflash_Flash}"/>
 										</StackPanel>
 										<StackPanel Margin="0" Orientation="Horizontal">
@@ -154,19 +154,19 @@
 													   Margin="8,0,0,0"
 													   VerticalAlignment="Center"
 													   FontSize="13"
-													   Text="Vender_boot" />
-											<TextBox Width="240" Name="VenderbootFile"
+													   Text="Vendor_boot" />
+											<TextBox Width="240" Name="VendorbootFile"
 													 theme:TextBoxExtensions.AddDeleteButton="False"/>
-											<Button Name="OpenVenderbootFileBut"
+											<Button Name="OpenVendorbootFileBut"
 												    Height="35"
 													Padding="10,0,10,0"
-													Click="OpenVenderbootFile"
+													Click="OpenVendorbootFile"
 													Content="{x:Static assets:Resources.Customizedflash_File}"/>
-											<Button Name="FlashVenderbootFileBut"
+											<Button Name="FlashVendorbootFileBut"
 												    Height="35"
 													Margin="5,0,0,0"
 													Padding="10,0,10,0"
-													Click="FlashVenderbootFile"
+													Click="FlashVendorbootFile"
 													Content="{x:Static assets:Resources.Customizedflash_Flash}"/>
 										</StackPanel>
 										<StackPanel Margin="0" Orientation="Horizontal">

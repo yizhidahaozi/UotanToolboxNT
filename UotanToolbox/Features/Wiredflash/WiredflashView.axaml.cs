@@ -337,7 +337,7 @@ public partial class WiredflashView : UserControl
                                             newboot = await KernelSUPatch.LKM_Patch(Global.Zipinfo, Global.Bootinfo);
                                             break;
                                     }
-                                    await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} {newboot}");
+                                    await Fastboot($"-s {Global.thisdevice} flash {Global.SetBoot} \"{newboot}\"");
                                 }
                                 else if (fbflashparts[i].Contains("vbmeta") && (bool)DisVbmeta.IsChecked)
                                 {
